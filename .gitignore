@@ -8,6 +8,7 @@ local.properties
 build/
 .idea/
 evidence/
+backend/data/
 *.jks
 *.keystore
 *.log
