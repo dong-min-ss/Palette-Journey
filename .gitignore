@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+local.properties
+.gradle/
+.kotlin/
+build/
+.idea/
+evidence/
+*.jks
+*.keystore
+*.log
