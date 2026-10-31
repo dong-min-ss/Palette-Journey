@@ -28,6 +28,8 @@ SQLite 데이터는 backend/data/에 저장되고 Git에서 제외된다.
 | GET | /api/session/palette | 참여자 토큰으로 세션 소유자 팔레트 조회 |
 | POST | /api/session/palette/personal | 참여자가 소유자 티켓으로 개인 색 해금 |
 | DELETE | /api/sessions/{id} | 소유자만 세션 종료 |
+| GET | /api/session/artwork | 참여자 권한으로 공유 계정의 저장 작품 조회 |
+| PUT | /api/session/artwork | {"regions":{"sky":"#2196F3"},"revision":0} 형식으로 저장 |
 
 정상 응답은 tickets와 colors를 포함한다. 중복 해금은 티켓을 추가 차감하지 않는다.
 오류는 {"error":"코드"} 형식이다. 인증 실패401, 잘못된 입력400,
@@ -57,6 +59,13 @@ Authorization 헤더에 사용하여 join API로 코드를 보낸다. 참여 계
 잘못된 코드·만료·종료된 초대는 INVALID_SESSION(400), 이미 다른 세션에 사용한 참여자 토큰은 PARTICIPANT_IN_USE(409),
 소유하지 않은 세션 종료는 SESSION_NOT_FOUND(404)다.
 
-아직 QR 이미지 생성·모바일 웹·Android 연결·실제 정차 확인은 구현하지 않았다.
+모바일 웹은 같은 서버의 /에서 제공한다. QR 이미지 생성·Android 연결·실제 정차 확인은 아직 구현하지 않았다.
 지금의 세션 API는 로컬 개발용이며 차량 연동 시 정차 확인 후 연결 코드를 표시해야 한다.
 배포 서버/HTTPS/사용자 로그인·요청 속도 제한·만료 데이터 정리는 후속 작업이다.
+
+## 작품 저장
+
+현재 도안의 sky/sun/mountain/field/road 영역만 허용하며 사용 계정에 해금된 HEX 색만 저장할 수 있다.
+GET의 초기 revision은0이다. PUT마다 서버 트랜잭션에서 기존 revision을 대조한 후1씩 증가시킨다.
+다른 기기가 먼저 저장했다면 ARTWORK_CONFLICT(409)를 반환하고 기존 작품은 유지한다.
+영역·색·버전 형식 오류는 INVALID_ARTWORK(400)다. 작품은 세션이 아닌 계정에 귀속되며 세션이 끝나도 남는다.

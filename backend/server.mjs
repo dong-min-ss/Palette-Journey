@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { AccountStore, accountKey } from './store.mjs';
@@ -18,7 +18,15 @@ export function createApp(store) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('Referrer-Policy', 'no-referrer');
     try {
+      const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
+      if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
+        const [file, type] = assets[req.url];
+        res.setHeader('Content-Type', type);
+        res.end(readFileSync(new URL(`../web/${file}`, import.meta.url))); return;
+      }
       if (req.method === 'GET' && req.url === '/health') {
         res.end(JSON.stringify({ status: 'ok' })); return;
       }
@@ -35,6 +43,8 @@ export function createApp(store) {
         result = store.revokeSession(token, req.url.split('/').at(-1));
       }
       else if (req.method === 'GET' && req.url === '/api/session/palette') result = store.sessionPalette(token);
+      else if (req.method === 'GET' && req.url === '/api/session/artwork') result = store.artwork(token);
+      else if (req.method === 'PUT' && req.url === '/api/session/artwork') result = store.saveArtwork(token, await readJson(req));
       else if (req.method === 'POST' && req.url === '/api/session/palette/personal') {
         const body = await readJson(req);
         if (!body || typeof body.hex !== 'string') throw new Error('INVALID_COLOR');
@@ -49,7 +59,8 @@ export function createApp(store) {
       res.end(JSON.stringify(result));
     } catch (error) {
       const codes = { UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
-        BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404 };
+        BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
+        INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409 };
       res.statusCode = codes[error.message] ?? 500;
       res.end(JSON.stringify({ error: res.statusCode === 500 ? 'INTERNAL_ERROR' : error.message }));
     }

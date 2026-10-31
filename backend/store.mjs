@@ -21,6 +21,9 @@ export class AccountStore {
       );
       CREATE TABLE IF NOT EXISTS participants (
         token_hash TEXT PRIMARY KEY, session_id TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS artworks (
+        owner_hash TEXT PRIMARY KEY, regions TEXT NOT NULL, revision INTEGER NOT NULL
       );`);
   }
   register(token) {
@@ -88,6 +91,32 @@ export class AccountStore {
     return session.owner_hash;
   }
   sessionPalette(token) { return this.getByKey(this.participantOwner(token)); }
+  artwork(token) {
+    const row = this.db.prepare('SELECT regions, revision FROM artworks WHERE owner_hash = ?').get(this.participantOwner(token));
+    return row ? { regions: JSON.parse(row.regions), revision: row.revision } : { regions: {}, revision: 0 };
+  }
+  saveArtwork(token, body) {
+    if (!body || !Number.isSafeInteger(body.revision) || body.revision < 0 ||
+        !body.regions || typeof body.regions !== 'object' || Array.isArray(body.regions) ||
+        Object.keys(body.regions).some(id => !['sky', 'sun', 'mountain', 'field', 'road'].includes(id))) {
+      throw new Error('INVALID_ARTWORK');
+    }
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const owner = this.participantOwner(token);
+      const palette = this.getByKey(owner);
+      if (Object.values(body.regions).some(hex => typeof hex !== 'string' ||
+          !palette.colors.some(color => color.hex === hex))) throw new Error('INVALID_ARTWORK');
+      const current = this.artwork(token);
+      if (current.revision !== body.revision) throw new Error('ARTWORK_CONFLICT');
+      const revision = current.revision + 1;
+      this.db.prepare(`INSERT INTO artworks VALUES (?, ?, ?) ON CONFLICT(owner_hash)
+        DO UPDATE SET regions = excluded.regions, revision = excluded.revision`)
+        .run(owner, JSON.stringify(body.regions), revision);
+      this.db.exec('COMMIT');
+      return { regions: body.regions, revision };
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
   revokeSession(token, id) {
     this.get(token);
     const result = this.db.prepare('UPDATE sessions SET revoked = 1 WHERE id = ? AND owner_hash = ?')

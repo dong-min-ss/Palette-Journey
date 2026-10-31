@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Palette Journey · 여행의 색</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.mjs"></script></head>
+<body>
+<main>
+  <header><a href="/" class="brand">Palette Journey<span>여행의 색을, 나의 그림으로</span></a><span class="badge">동승자 컬러링</span></header>
+  <section id="connection" class="card">
+    <p class="eyebrow">함께 떠나는 색 여행</p><h1>오늘의 여행을<br>색으로 채워볼까요?</h1>
+    <p>차량에서 받은 연결 코드를 입력하면 여행의 팔레트로 그림을 이어갈 수 있어요.</p>
+    <form id="join-form"><label for="code">여행 연결 코드</label><input id="code" name="code" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="24" required placeholder="24자리 연결 코드"><button id="join" type="submit">여행에 연결하기</button></form>
+    <p class="hint">연결 코드는 발급 후 5분간 유효해요. 운전 중에는 조작하지 마세요.</p>
+  </section>
+  <section id="studio" hidden>
+    <div class="section-title"><div><p class="eyebrow">나의 작은 여행 작업실</p><h1>여행길 풍경</h1></div><button id="disconnect" class="secondary">연결 나가기</button></div>
+    <p>색을 고르고 그림의 영역을 눌러보세요.</p>
+    <div class="canvas card"><svg viewBox="0 0 600 400" role="group" aria-label="여행길 풍경 컬러링 도안">
+      <rect data-region="sky" role="button" tabindex="0" aria-label="하늘 칠하기" x="5" y="5" width="590" height="390" rx="24"/>
+      <circle data-region="sun" role="button" tabindex="0" aria-label="해 칠하기" cx="465" cy="90" r="43"/>
+      <path data-region="mountain" role="button" tabindex="0" aria-label="산 칠하기" d="M5 260 L155 90 L285 240 L370 150 L595 285 L595 395 L5 395 Z"/>
+      <path data-region="field" role="button" tabindex="0" aria-label="들판 칠하기" d="M5 295 Q150 225 300 285 T595 270 L595 395 L5 395 Z"/>
+      <path data-region="road" role="button" tabindex="0" aria-label="길 칠하기" d="M285 280 L320 280 Q295 325 410 395 L190 395 Q320 320 285 280 Z"/>
+    </svg></div>
+    <div class="card palette-card"><div class="section-title"><h2>여행 팔레트</h2><span id="tickets" class="badge"></span></div><div id="palette" role="group" aria-label="색 선택"></div><p id="selected" class="hint"></p>
+      <form id="unlock-form"><label for="personal">나만의 색 추가</label><div class="actions"><input id="personal" type="color" value="#568A91"><button id="unlock" type="submit" class="secondary">티켓 1장으로 해금</button></div></form>
+    </div>
+    <div class="actions"><button id="save">그림 저장하기</button><button id="reload" class="secondary">저장된 그림 불러오기</button></div><p id="save-state" class="hint">저장된 그림을 불러왔어요.</p>
+  </section>
+  <p id="status" role="status" aria-live="polite"></p>
+  <footer>지나온 길의 색으로, 하나뿐인 여행을 그려요.</footer>
+</main>
+</body></html>
