@@ -8,7 +8,7 @@ async function readJson(req) {
   let body = '';
   for await (const chunk of req) {
     body += chunk;
-    if (Buffer.byteLength(body) > 4096) throw new Error('BODY_TOO_LARGE');
+    if (Buffer.byteLength(body) > (req.url==='/api/session/artwork'?524288:4096)) throw new Error('BODY_TOO_LARGE');
   }
   try { return JSON.parse(body); } catch { throw new Error('INVALID_JSON'); }
 }

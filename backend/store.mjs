@@ -93,28 +93,42 @@ export class AccountStore {
   sessionPalette(token) { return this.getByKey(this.participantOwner(token)); }
   artwork(token) {
     const row = this.db.prepare('SELECT regions, revision FROM artworks WHERE owner_hash = ?').get(this.participantOwner(token));
-    return row ? { regions: JSON.parse(row.regions), revision: row.revision } : { regions: {}, revision: 0 };
+    if(!row)return {strokes:[],legacyRegions:{},revision:0};
+    const data=JSON.parse(row.regions);
+    return Object.hasOwn(data,'strokes') ? {...data,revision:row.revision} : {strokes:[],legacyRegions:data,revision:row.revision};
   }
   saveArtwork(token, body) {
     if (!body || !Number.isSafeInteger(body.revision) || body.revision < 0 ||
-        !body.regions || typeof body.regions !== 'object' || Array.isArray(body.regions) ||
-        Object.keys(body.regions).some(id => !['sky', 'sun', 'mountain', 'field', 'road'].includes(id))) {
+        !Array.isArray(body.strokes) || body.strokes.length>1000 ||
+        !body.legacyRegions || typeof body.legacyRegions!=='object' || Array.isArray(body.legacyRegions)) {
       throw new Error('INVALID_ARTWORK');
     }
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const owner = this.participantOwner(token);
       const palette = this.getByKey(owner);
-      if (Object.values(body.regions).some(hex => typeof hex !== 'string' ||
-          !palette.colors.some(color => color.hex === hex))) throw new Error('INVALID_ARTWORK');
       const current = this.artwork(token);
       if (current.revision !== body.revision) throw new Error('ARTWORK_CONFLICT');
+      const legacyKeys=Object.keys(current.legacyRegions);
+      if(Object.keys(body.legacyRegions).length!==legacyKeys.length ||
+          legacyKeys.some(key=>body.legacyRegions[key]!==current.legacyRegions[key]))throw new Error('INVALID_ARTWORK');
+      let totalPoints=0;
+      const strokes=body.strokes.map(stroke=>{
+        if(!stroke||!['paint','erase'].includes(stroke.tool)||!Number.isFinite(stroke.width)||stroke.width<1||stroke.width>60||
+            !Array.isArray(stroke.points)||stroke.points.length<1||stroke.points.length>2000||
+            !palette.colors.some(color=>color.hex===stroke.color)||
+            stroke.points.some(p=>!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite)||p[0]<0||p[0]>600||p[1]<0||p[1]>400))throw new Error('INVALID_ARTWORK');
+        totalPoints+=stroke.points.length;
+        return {tool:stroke.tool,color:stroke.color,width:stroke.width,points:stroke.points};
+      });
+      if(totalPoints>20000)throw new Error('INVALID_ARTWORK');
+      const data={strokes,legacyRegions:current.legacyRegions};
       const revision = current.revision + 1;
       this.db.prepare(`INSERT INTO artworks VALUES (?, ?, ?) ON CONFLICT(owner_hash)
         DO UPDATE SET regions = excluded.regions, revision = excluded.revision`)
-        .run(owner, JSON.stringify(body.regions), revision);
+        .run(owner, JSON.stringify(data), revision);
       this.db.exec('COMMIT');
-      return { regions: body.regions, revision };
+      return { ...data, revision };
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   revokeSession(token, id) {

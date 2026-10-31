@@ -29,7 +29,7 @@ SQLite 데이터는 backend/data/에 저장되고 Git에서 제외된다.
 | POST | /api/session/palette/personal | 참여자가 소유자 티켓으로 개인 색 해금 |
 | DELETE | /api/sessions/{id} | 소유자만 세션 종료 |
 | GET | /api/session/artwork | 참여자 권한으로 공유 계정의 저장 작품 조회 |
-| PUT | /api/session/artwork | {"regions":{"sky":"#2196F3"},"revision":0} 형식으로 저장 |
+| PUT | /api/session/artwork | strokes, legacyRegions, revision 형식으로 브러시 획 저장 |
 
 정상 응답은 tickets와 colors를 포함한다. 중복 해금은 티켓을 추가 차감하지 않는다.
 오류는 {"error":"코드"} 형식이다. 인증 실패401, 잘못된 입력400,
@@ -65,7 +65,10 @@ Authorization 헤더에 사용하여 join API로 코드를 보낸다. 참여 계
 
 ## 작품 저장
 
-현재 도안의 sky/sun/mountain/field/road 영역만 허용하며 사용 계정에 해금된 HEX 색만 저장할 수 있다.
+작품은 strokes 배열로 저장한다. 예: {"strokes":[{"tool":"paint","color":"#2196F3","width":12,"points":[[10,20],[30,40]]}],"legacyRegions":{},"revision":0}.
+tool은 paint/erase, width는1~60, 좌표는600×400 내부 유한수만 허용하며 해금된 HEX 색만 저장할 수 있다.
+최대1000획·총20000점·획당2000점·요청512KiB로 제한한다. 다른 API 요청은4KiB 제한을 유지한다.
+기존 regions 형식 작품은 GET에서 legacyRegions로 읽으며 삭제하지 않는다. legacyRegions는 기존 데이터와 같아야 하므로 새 영역 채우기를 등록할 수 없다.
 GET의 초기 revision은0이다. PUT마다 서버 트랜잭션에서 기존 revision을 대조한 후1씩 증가시킨다.
 다른 기기가 먼저 저장했다면 ARTWORK_CONFLICT(409)를 반환하고 기존 작품은 유지한다.
-영역·색·버전 형식 오류는 INVALID_ARTWORK(400)다. 작품은 세션이 아닌 계정에 귀속되며 세션이 끝나도 남는다.
+획·좌표·색·버전 형식 오류는 INVALID_ARTWORK(400)다. 작품은 세션이 아닌 계정에 귀속되며 세션이 끝나도 남는다.
