@@ -26,6 +26,20 @@ export function createApp(store) {
       accountKey(token);
       let result;
       if (req.method === 'PUT' && req.url === '/api/account') result = store.register(token);
+      else if (req.method === 'POST' && req.url === '/api/sessions') result = store.createSession(token);
+      else if (req.method === 'POST' && req.url === '/api/sessions/join') {
+        const body = await readJson(req);
+        result = store.joinSession(token, body?.code);
+      }
+      else if (req.method === 'DELETE' && /^\/api\/sessions\/[^/]+$/.test(req.url)) {
+        result = store.revokeSession(token, req.url.split('/').at(-1));
+      }
+      else if (req.method === 'GET' && req.url === '/api/session/palette') result = store.sessionPalette(token);
+      else if (req.method === 'POST' && req.url === '/api/session/palette/personal') {
+        const body = await readJson(req);
+        if (!body || typeof body.hex !== 'string') throw new Error('INVALID_COLOR');
+        result = store.unlock(token, body.hex, true);
+      }
       else if (req.method === 'GET' && req.url === '/api/palette') result = store.get(token);
       else if (req.method === 'POST' && req.url === '/api/palette/personal') {
         const body = await readJson(req);
@@ -34,7 +48,8 @@ export function createApp(store) {
       } else { res.statusCode = 404; res.end(JSON.stringify({ error: 'NOT_FOUND' })); return; }
       res.end(JSON.stringify(result));
     } catch (error) {
-      const codes = { UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400, BODY_TOO_LARGE: 413 };
+      const codes = { UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
+        BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404 };
       res.statusCode = codes[error.message] ?? 500;
       res.end(JSON.stringify({ error: res.statusCode === 500 ? 'INTERNAL_ERROR' : error.message }));
     }

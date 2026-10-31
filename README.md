@@ -10,4 +10,4 @@ Android 첫 화면은 `android`에 있다. 기본 11색과 개발 상태 안내�
 Android 빌드: `cd android` 후 `gradlew.bat :app:assembleDebug :app:testDebugUnitTest`.
 SDK 경로는 Git에서 제외되는 android/local.properties에 설정한다.
 백엔드는 `npm.cmd start`로 실행한다. 계정·팔레트 저장과 개인 색 해금 API는 backend/README.md를 참고한다.
-모바일 웹과 차량·모바일 세션 연결은 아직 구현되지 않았다.
+백엔드는 만료되는 차량·모바일 연결 세션과 참여자 권한을 지원한다. 모바일 웹·QR 화면·차량 앱 API 연결은 후속 구현이다.
