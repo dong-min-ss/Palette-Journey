@@ -64,12 +64,26 @@ function applyArtwork(art) {
   dirty=false; $('save-state').textContent='저장된 그림을 불러왔어요.';
 }
 async function load() {
-  const [colors,books] = await Promise.all([api('/api/session/palette'),api('/api/session/library')]);
+  const [colors,books,catalog] = await Promise.all([api('/api/session/palette'),api('/api/session/library'),api('/api/session/catalog')]);
+  renderCatalog(catalog);
   palette=colors;library=books;renderPalette();renderLibrary();
   const remembered=localStorage.getItem('pj-last-page-'+library.familyId);
   const page=library.pages.find(p=>p.id===currentPage?.id)||library.pages.find(p=>p.id===remembered)||library.pages[0];
   if(page)await openPage(page.id);else{currentPage=null;strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
+}
+function renderCatalog(catalog){
+  $('catalog-note').textContent=catalog.note;
+  for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
+  for(const item of [...catalog.stickers,...catalog.colors]){
+    const card=document.createElement('article');card.className='catalog-item';
+    if(item.asset){const img=document.createElement('img');img.src=item.asset;img.alt=item.name;img.width=100;img.height=100;card.append(img);}
+    else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
+    const title=document.createElement('h3');title.textContent=item.name;
+    const description=document.createElement('p');description.textContent=item.description;
+    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 배치 기능 준비 중':item.unlocked?'수집한 색':`잠김 · ${item.acquisition}`;
+    card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
+  }
 }
 function options(id,rows,value){$(id).replaceChildren(...rows.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.title??row.name;return option;}));if(rows.some(r=>r.id===value))$(id).value=value;}
 function renderLibrary(){
