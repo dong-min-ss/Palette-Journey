@@ -3,8 +3,15 @@ const storageKey = 'palette-journey-participant';
 const names = { red:'빨강', orange:'주황', yellow:'노랑', green:'초록', blue:'파랑', purple:'보라', pink:'핑크', brown:'브라운', white:'화이트', black:'블랙', gray:'그레이' };
 let token = null, palette = null, selected = null, revision = 0, dirty = false, pendingJoin = null, editVersion = 0;
 let strokes=[], legacyRegions={}, active=null, undone=[], tool='paint';
+let library=null,currentPage=null,saveTimer=null,saving=null,autoBlocked=false;
 const canvas=$('drawing'), ctx=canvas.getContext('2d');
-function changed(){editVersion++;dirty=true;$('save-state').textContent='아직 저장하지 않은 변경이 있어요.';}
+function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,revision,legacyRegions};}
+function changed(){
+  if(!currentPage){status('먼저 그림일기와 페이지를 추가해주세요.');return;}
+  editVersion++;dirty=true;$('save-state').textContent='자동 저장을 기다리고 있어요.';
+  if(currentPage){try{localStorage.setItem('pj-draft-'+currentPage.id,JSON.stringify(snapshot()));}catch{status('이 기기의 임시 저장 공간이 부족해요. 서버 저장 상태를 확인해주세요.');}}
+  clearTimeout(saveTimer);if(!autoBlocked)saveTimer=setTimeout(()=>{if(!active&&dirty)busy($('save'),saveCurrent);},1200);
+}
 function drawStroke(stroke){
   ctx.globalCompositeOperation=stroke.tool==='erase'?'destination-out':'source-over';
   ctx.strokeStyle=stroke.color;ctx.fillStyle=stroke.color;ctx.lineWidth=stroke.width;ctx.lineCap='round';ctx.lineJoin='round';
@@ -19,6 +26,8 @@ function redraw(){
   ctx.globalCompositeOperation='source-over';$('undo').disabled=!strokes.length;$('redo').disabled=!undone.length;
 }
 const messages = { UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', NO_TICKET:'사용할 티켓이 없어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
+messages.INVALID_DIARY='제목·별명과 글 길이를 확인해주세요. 제목은 비워둘 수 없어요.';
+messages.DIARY_NOT_FOUND='이 가족의 기록을 찾지 못했어요. 다시 연결해주세요.';
 function status(message) { $('status').textContent = message; }
 function randomToken() { return [...crypto.getRandomValues(new Uint8Array(32))].map(n => n.toString(16).padStart(2,'0')).join(''); }
 async function api(path, method='GET', body, credential=token) {
@@ -55,10 +64,74 @@ function applyArtwork(art) {
   dirty=false; $('save-state').textContent='저장된 그림을 불러왔어요.';
 }
 async function load() {
-  const [colors,art] = await Promise.all([api('/api/session/palette'),api('/api/session/artwork')]);
-  palette=colors; renderPalette(); applyArtwork(art);
+  const [colors,books] = await Promise.all([api('/api/session/palette'),api('/api/session/library')]);
+  palette=colors;library=books;renderPalette();renderLibrary();
+  const remembered=localStorage.getItem('pj-last-page-'+library.familyId);
+  const page=library.pages.find(p=>p.id===currentPage?.id)||library.pages.find(p=>p.id===remembered)||library.pages[0];
+  if(page)await openPage(page.id);else{currentPage=null;strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
 }
+function options(id,rows,value){$(id).replaceChildren(...rows.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.title??row.name;return option;}));if(rows.some(r=>r.id===value))$(id).value=value;}
+function renderLibrary(){
+  const child=$('child').value,trip=$('trip').value,diary=$('diary').value,page=$('page').value;
+  options('child',library.children,child);options('trip',library.trips,trip);
+  options('diary',library.diaries.filter(d=>d.childId===$('child').value&&d.tripId===$('trip').value),diary);
+  options('page',library.pages.filter(p=>p.diaryId===$('diary').value),page);
+}
+async function openPage(id){
+  const page=await api('/api/session/pages/'+id);currentPage=page;autoBlocked=false;clearTimeout(saveTimer);
+  const diary=library.diaries.find(d=>d.id===page.diaryId);
+  $('child').value=diary.childId;$('trip').value=diary.tripId;renderLibrary();$('diary').value=diary.id;renderLibrary();$('page').value=page.id;
+  $('page-title').value=page.title;$('page-text').value=page.text;
+  $('page-title').disabled=false;$('page-text').disabled=false;$('save').disabled=false;
+  document.querySelector('.drawing-surface').classList.toggle('blank',page.template==='blank');applyArtwork(page);
+  localStorage.setItem('pj-last-page-'+library.familyId,page.id);
+  $('recover-draft').hidden=true;const draft=localStorage.getItem('pj-draft-'+page.id);
+  if(draft){try{const data=JSON.parse(draft);if(data.revision===page.revision){$('page-title').value=data.title;$('page-text').value=data.text;applyArtwork(data);changed();status('이 기기의 임시 기록을 복원했어요.');}else{$('recover-draft').hidden=false;status('서버와 임시 기록의 버전이 달라요. 서버 기록을 불러왔으며 임시 기록도 보존했어요.');}}catch{status('임시 기록을 읽지 못해 서버 기록을 불러왔어요.');}}
+}
+$('recover-draft').onclick=()=>{
+  if(!currentPage||!confirm('이 기기의 임시 기록으로 이어쓰면 다음 저장 때 서버 내용을 바꿉니다. 계속할까요?'))return;
+  try{const data=JSON.parse(localStorage.getItem('pj-draft-'+currentPage.id));
+    $('page-title').value=data.title;$('page-text').value=data.text;
+    applyArtwork({...data,revision:currentPage.revision,legacyRegions:currentPage.legacyRegions});autoBlocked=false;changed();$('recover-draft').hidden=true;
+  }catch{status('임시 기록을 읽지 못했어요.');}
+};
+async function saveCurrent(){
+  clearTimeout(saveTimer);if(saving){await saving;return;}if(!token||!currentPage||!dirty||active)return;
+  const pageId=currentPage.id,version=editVersion,data=snapshot();
+  saving=(async()=>{try{
+    const saved=await api('/api/session/pages/'+pageId,'PUT',data);
+    if(currentPage?.id!==pageId)return;
+    revision=saved.revision;currentPage=saved;dirty=editVersion!==version;
+    const item=library.pages.find(p=>p.id===pageId);if(item)item.title=saved.title;
+    if(!dirty){localStorage.removeItem('pj-draft-'+pageId);$('save-state').textContent='서버에 저장했어요.';renderLibrary();}
+    else{localStorage.setItem('pj-draft-'+pageId,JSON.stringify(snapshot()));clearTimeout(saveTimer);saveTimer=setTimeout(()=>busy($('save'),saveCurrent),1200);}
+  }catch(e){if(e.message==='ARTWORK_CONFLICT')autoBlocked=true;$('save-state').textContent='서버 저장에 실패했어요. 이 기기의 임시 기록은 유지됩니다.';throw e;}finally{saving=null;}})();
+  await saving;
+}
+async function leavePage(){if(active)return false;await saveCurrent();return !dirty;}
+function restoreSelection(){if(!currentPage)return;const d=library.diaries.find(item=>item.id===currentPage.diaryId);$('child').value=d.childId;$('trip').value=d.tripId;renderLibrary();$('diary').value=d.id;renderLibrary();$('page').value=currentPage.id;}
+for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),async()=>{
+  const wanted=$(id).value;
+  try {if(!await leavePage()){restoreSelection();status('현재 페이지의 저장이 끝난 뒤 이동해주세요.');return;}
+  if(id==='page'){await openPage(wanted);return;}renderLibrary();const next=$('page').value;
+  if(next)await openPage(next);else{clearPage();status('그림일기와 페이지를 추가해주세요.');}
+  }catch(e){restoreSelection();throw e;}
+});
+function clearPage(){clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
+for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
+  if(!await leavePage())return;
+  const path={child:'children',trip:'trips',diary:'diaries'}[kind];
+  const body=kind==='child'?{name:$('child-name').value}:{title:$(kind+'-title').value,...(kind==='diary'?{childId:$('child').value,tripId:$('trip').value}:{})};
+  const added=await api('/api/session/'+path,'POST',body);library=await api('/api/session/library');renderLibrary();$(kind).value=added.id;renderLibrary();
+  clearPage();status('추가했어요. 여행과 그림일기를 선택하고 페이지를 만들어주세요.');event.target.reset();
+});};
+$('page-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
+  if(!await leavePage())return;if(!$('diary').value){status('먼저 그림일기를 추가해주세요.');return;}
+  const page=await api('/api/session/diaries/'+$('diary').value+'/pages','POST',{title:$('new-page-title').value,template:$('new-template').value});
+  library=await api('/api/session/library');await openPage(page.id);event.target.reset();status('새 페이지를 만들었어요.');
+});};
+$('page-title').oninput=changed;$('page-text').oninput=changed;
 $('join-form').onsubmit = event => {
   event.preventDefault();
   busy($('join'), async()=>{
@@ -75,7 +148,7 @@ $('join-form').onsubmit = event => {
 };
 function point(event){const rect=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(600,(event.clientX-rect.left)*600/rect.width))*10)/10,Math.round(Math.max(0,Math.min(400,(event.clientY-rect.top)*400/rect.height))*10)/10];}
 canvas.onpointerdown=event=>{
-  if(!token||!palette||active||event.button!==0)return;
+  if(!token||!palette||!currentPage||active||event.button!==0)return;
   if(strokes.length>=1000||strokes.reduce((sum,s)=>sum+s.points.length,0)>=20000){status('그림의 획 한도에 도달했어요. 실행 취소 후 다시 그려주세요.');return;}
   active={tool,color:selected,width:Number($('size').value),points:[point(event)],pointerId:event.pointerId};
   canvas.setPointerCapture(event.pointerId);redraw();
@@ -94,13 +167,13 @@ $('size').oninput=()=>{$('size-label').textContent=$('size').value;};
 $('undo').onclick=()=>{if(strokes.length){undone.push(strokes.pop());changed();redraw();}};
 $('redo').onclick=()=>{if(undone.length){strokes.push(undone.pop());changed();redraw();}};
 $('save').onclick=()=>busy($('save'),async()=>{
+  if(!currentPage){status('먼저 페이지를 추가해주세요.');return;}
   if(active){status('펜을 뗀 뒤 저장해주세요.');return;}
-  const savingVersion=editVersion;
-  const saved=await api('/api/session/artwork','PUT',{strokes,legacyRegions,revision});
-  revision=saved.revision;dirty=editVersion!==savingVersion;$('save-state').textContent=dirty?'저장 후 새로 칠한 변경이 있어요. 한 번 더 저장해주세요.':'서버에 저장했어요. 다음에도 이어 그릴 수 있어요.';status('그림을 저장했어요.');
+  await saveCurrent();status('페이지를 저장했어요.');
 });
 $('reload').onclick=()=>busy($('reload'),async()=>{
   if(dirty&&!confirm('저장하지 않은 변경을 버리고 저장된 그림을 불러올까요?'))return;
+  clearTimeout(saveTimer);if(currentPage)localStorage.removeItem('pj-draft-'+currentPage.id);dirty=false;
   await load();status('저장된 그림을 불러왔어요.');
 });
 $('unlock-form').onsubmit=event=>{event.preventDefault();busy($('unlock'),async()=>{
@@ -108,9 +181,10 @@ $('unlock-form').onsubmit=event=>{event.preventDefault();busy($('unlock'),async(
 });};
 $('disconnect').onclick=()=>{
   if(dirty&&!confirm('저장하지 않은 그림이 있어요. 연결에서 나갈까요?'))return;
-  localStorage.removeItem(storageKey);token=null;palette=null;dirty=false;pendingJoin=null;
+  clearTimeout(saveTimer);localStorage.removeItem(storageKey);token=null;palette=null;dirty=false;pendingJoin=null;currentPage=null;
   $('studio').hidden=true;$('connection').hidden=false;status('이 기기에서 연결을 나왔어요.');
 };
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+window.addEventListener('online',()=>{if(token&&dirty&&!autoBlocked)busy($('save'),saveCurrent);});
 try { token=localStorage.getItem(storageKey); if(token) await load(); }
 catch(e) { error(e); }

@@ -3,17 +3,20 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { AccountStore, accountKey } from './store.mjs';
+import { DiaryStore } from './diaries.mjs';
 
 async function readJson(req) {
-  let body = '';
+  const chunks=[];let length=0;
   for await (const chunk of req) {
-    body += chunk;
-    if (Buffer.byteLength(body) > (req.url==='/api/session/artwork'?524288:4096)) throw new Error('BODY_TOO_LARGE');
+    length+=chunk.length;
+    if (length > ((req.url==='/api/session/artwork'||req.url?.startsWith('/api/session/pages/'))?524288:4096)) throw new Error('BODY_TOO_LARGE');
+    chunks.push(chunk);
   }
-  try { return JSON.parse(body); } catch { throw new Error('INVALID_JSON'); }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('INVALID_JSON'); }
 }
 
 export function createApp(store) {
+  const diaries=new DiaryStore(store);
   return createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -33,7 +36,14 @@ export function createApp(store) {
       const token = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization ?? '')?.[1];
       accountKey(token);
       let result;
-      if (req.method === 'PUT' && req.url === '/api/account') result = store.register(token);
+      if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);
+      else if(req.method==='POST'&&req.url==='/api/session/children')result=diaries.createChild(token,await readJson(req));
+      else if(req.method==='POST'&&req.url==='/api/session/trips')result=diaries.createTrip(token,await readJson(req));
+      else if(req.method==='POST'&&req.url==='/api/session/diaries')result=diaries.createDiary(token,await readJson(req));
+      else if(req.method==='POST'&&/^\/api\/session\/diaries\/[^/]+\/pages$/.test(req.url))result=diaries.createPage(token,req.url.split('/')[4],await readJson(req));
+      else if(req.method==='GET'&&/^\/api\/session\/pages\/[^/]+$/.test(req.url))result=diaries.page(token,req.url.split('/')[4]);
+      else if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+$/.test(req.url))result=diaries.savePage(token,req.url.split('/')[4],await readJson(req));
+      else if (req.method === 'PUT' && req.url === '/api/account') result = store.register(token);
       else if (req.method === 'POST' && req.url === '/api/sessions') result = store.createSession(token);
       else if (req.method === 'POST' && req.url === '/api/sessions/join') {
         const body = await readJson(req);
@@ -60,7 +70,7 @@ export function createApp(store) {
     } catch (error) {
       const codes = { UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
-        INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409 };
+        INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404 };
       res.statusCode = codes[error.message] ?? 500;
       res.end(JSON.stringify({ error: res.statusCode === 500 ? 'INTERNAL_ERROR' : error.message }));
     }

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Palette Journey · 여행의 색</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.mjs"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Palette Journey · 여행 그림일기</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.mjs"></script></head>
 <body>
 <main>
   <header><a href="/" class="brand">Palette Journey<span>여행의 색을, 나의 그림으로</span></a><span class="badge">동승자 컬러링</span></header>
@@ -11,7 +11,11 @@
     <p class="hint">연결 코드는 발급 후 5분간 유효해요. 운전 중에는 조작하지 마세요.</p>
   </section>
   <section id="studio" hidden>
-    <div class="section-title"><div><p class="eyebrow">나의 작은 여행 작업실</p><h1>여행길 풍경</h1></div><button id="disconnect" class="secondary">연결 나가기</button></div>
+    <div class="section-title"><div><p class="eyebrow">가족에게만 보이는 여행 그림일기</p><h1>나의 여행책</h1></div><button id="disconnect" class="secondary">연결 나가기</button></div>
+    <section class="card library"><div class="book-selectors"><label>어린이 별명<select id="child"></select></label><label>여행<select id="trip"></select></label><label>그림일기<select id="diary"></select></label><label>페이지<select id="page"></select></label></div>
+    <details><summary>새로운 기록 만들기</summary><div class="book-selectors"><form id="child-form"><label for="child-name">어린이 별명</label><input id="child-name" maxlength="40" required placeholder="실명 대신 별명"><button type="submit" class="secondary">어린이 추가</button></form><form id="trip-form"><label for="trip-title">여행 이름</label><input id="trip-title" maxlength="80" required><button type="submit" class="secondary">여행 추가</button></form><form id="diary-form"><label for="diary-title">그림일기 이름</label><input id="diary-title" maxlength="80" required><button type="submit" class="secondary">그림일기 추가</button></form></div></details>
+    <form id="page-form" class="new-page"><label for="new-page-title">새 페이지</label><input id="new-page-title" maxlength="80" required placeholder="페이지 이름"><select id="new-template" aria-label="새 페이지 도안"><option value="blank">빈 페이지</option><option value="landscape">여행길 도안</option></select><button type="submit" class="secondary">페이지 추가</button></form></section>
+    <label for="page-title">페이지 제목</label><input id="page-title" maxlength="80" placeholder="오늘 기억하고 싶은 순간">
     <p>색을 고르고 손가락이나 펜으로 직접 칠해보세요. 지나간 부분만 색이 남아요.</p>
     <div class="drawing-tools"><button id="brush" aria-pressed="true">브러시</button><button id="eraser" class="secondary" aria-pressed="false">지우개</button><button id="undo" class="secondary">실행 취소</button><button id="redo" class="secondary">다시 실행</button><label for="size">굵기 <output id="size-label">12</output><input id="size" type="range" min="2" max="48" value="12"></label></div>
     <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="펜과 손가락으로 색칠하는 여행길 풍경"></canvas><svg viewBox="0 0 600 400" aria-hidden="true">
@@ -21,10 +25,11 @@
       <path d="M5 295 Q150 225 300 285 T595 270"/>
       <path d="M285 280 L320 280 Q295 325 410 395 M190 395 Q320 320 285 280"/>
     </svg></div></div>
+    <label for="page-text">오늘의 이야기 <span class="hint">그림만 남겨도 괜찮아요.</span></label><textarea id="page-text" maxlength="2000" rows="4" placeholder="오늘 가장 기억나는 일은 무엇인가요?"></textarea>
     <div class="card palette-card"><div class="section-title"><h2>여행 팔레트</h2><span id="tickets" class="badge"></span></div><div id="palette" role="group" aria-label="색 선택"></div><p id="selected" class="hint"></p>
       <form id="unlock-form"><label for="personal">나만의 색 추가</label><div class="actions"><input id="personal" type="color" value="#568A91"><button id="unlock" type="submit" class="secondary">티켓 1장으로 해금</button></div></form>
     </div>
-    <div class="actions"><button id="save">그림 저장하기</button><button id="reload" class="secondary">저장된 그림 불러오기</button></div><p id="save-state" class="hint">저장된 그림을 불러왔어요.</p>
+    <div class="actions"><button id="save">페이지 저장하기</button><button id="reload" class="secondary">저장된 페이지 불러오기</button><button id="recover-draft" class="secondary" hidden>임시 기록으로 이어쓰기</button></div><p id="save-state" class="hint">저장된 페이지를 불러왔어요.</p>
   </section>
   <p id="status" role="status" aria-live="polite"></p>
   <footer>지나온 길의 색으로, 하나뿐인 여행을 그려요.</footer>
