@@ -9,4 +9,6 @@ star.svg, heart.svg, cheomseongdae.svg, silla-crown.svg는 이 저장소에서 �
 신라 금관 소재 참고: https://www.museum.go.kr/MUSEUM/contents/M0502000000.do?relicId=752&schM=view&searchId=search
 외부 자료의 사진을 자산으로 가져오지는 않았다.
 
-현재는 사전 미리보기 자산이다. 페이지 배치·폭/높이 조절·저장에는 아직 연결하지 않았다.
+사용자 요청으로 색을 모두 제거해 흰 바탕·검은 선화로 변경했다. 각 -outline.svg는 투명한 선 레이어다.
+페이지는 흰 바탕 이미지 → 사용자가 칠한 Canvas → 검은 선 이미지 순서로 그린다. 지우개가 도안 선이나 흰 바탕을 지우지 않는다.
+기본 스티커는 바로 배치 가능하며 지역 스티커는 보유 권한이 있어야 배치할 수 있다.

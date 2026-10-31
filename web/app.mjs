@@ -1,3 +1,4 @@
+import {createStickerEditor} from './stickers.mjs';
 const $ = id => document.getElementById(id);
 const storageKey = 'palette-journey-participant';
 const names = { red:'빨강', orange:'주황', yellow:'노랑', green:'초록', blue:'파랑', purple:'보라', pink:'핑크', brown:'브라운', white:'화이트', black:'블랙', gray:'그레이' };
@@ -5,12 +6,16 @@ let token = null, palette = null, selected = null, revision = 0, dirty = false, 
 let strokes=[], legacyRegions={}, active=null, undone=[], tool='paint';
 let library=null,currentPage=null,saveTimer=null,saving=null,autoBlocked=false;
 const canvas=$('drawing'), ctx=canvas.getContext('2d');
-function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,revision,legacyRegions};}
+const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:()=>strokes.reduce((n,s)=>n+s.points.length,0),getColor:()=>selected,getWidth:()=>Number($('size').value),canEdit:()=>!!token&&!!currentPage&&!active,onChange:changed,onSelect:(item,message)=>{
+  $('sticker-selection').hidden=!item;if(item){$('sticker-name').textContent='선택한 스티커';$('sticker-width').value=item.width;$('sticker-height').value=item.height;}
+  $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
+}});
+function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
 function changed(){
   if(!currentPage){status('먼저 그림일기와 페이지를 추가해주세요.');return;}
   editVersion++;dirty=true;$('save-state').textContent='자동 저장을 기다리고 있어요.';
   if(currentPage){try{localStorage.setItem('pj-draft-'+currentPage.id,JSON.stringify(snapshot()));}catch{status('이 기기의 임시 저장 공간이 부족해요. 서버 저장 상태를 확인해주세요.');}}
-  clearTimeout(saveTimer);if(!autoBlocked)saveTimer=setTimeout(()=>{if(!active&&dirty)busy($('save'),saveCurrent);},1200);
+  clearTimeout(saveTimer);if(!autoBlocked)saveTimer=setTimeout(()=>{if(!active&&!stickerEditor.isActive()&&dirty)busy($('save'),saveCurrent);},1200);
 }
 function drawStroke(stroke){
   ctx.globalCompositeOperation=stroke.tool==='erase'?'destination-out':'source-over';
@@ -28,6 +33,7 @@ function redraw(){
 const messages = { UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', NO_TICKET:'사용할 티켓이 없어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
 messages.INVALID_DIARY='제목·별명과 글 길이를 확인해주세요. 제목은 비워둘 수 없어요.';
 messages.DIARY_NOT_FOUND='이 가족의 기록을 찾지 못했어요. 다시 연결해주세요.';
+messages.INVALID_STICKER_PLACEMENT='보유하지 않은 스티커이거나 페이지 밖으로 벗어난 배치예요.';
 function status(message) { $('status').textContent = message; }
 function randomToken() { return [...crypto.getRandomValues(new Uint8Array(32))].map(n => n.toString(16).padStart(2,'0')).join(''); }
 async function api(path, method='GET', body, credential=token) {
@@ -61,6 +67,7 @@ function renderPalette() {
 function applyArtwork(art) {
   revision=art.revision;
   strokes=art.strokes??[];legacyRegions=art.legacyRegions??art.regions??{};undone=[];active=null;redraw();
+  stickerEditor.setPlacements(art.stickers??[]);
   dirty=false; $('save-state').textContent='저장된 그림을 불러왔어요.';
 }
 async function load() {
@@ -73,6 +80,10 @@ async function load() {
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
 }
 function renderCatalog(catalog){
+  stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
+  for(const item of catalog.stickers){const button=document.createElement('button');button.className='secondary';button.disabled=!item.unlocked;
+    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name+(item.unlocked?' 붙이기':' · 잠김');button.append(image,label);
+    button.onclick=()=>{stickerEditor.add(item.id);setTool('move');};$('sticker-picker').append(button);}
   $('catalog-note').textContent=catalog.note;
   for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
   for(const item of [...catalog.stickers,...catalog.colors]){
@@ -81,7 +92,7 @@ function renderCatalog(catalog){
     else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
     const title=document.createElement('h3');title.textContent=item.name;
     const description=document.createElement('p');description.textContent=item.description;
-    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 배치 기능 준비 중':item.unlocked?'수집한 색':`잠김 · ${item.acquisition}`;
+    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.unlocked?'해금됨':`잠김 · ${item.acquisition}`;
     card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
   }
 }
@@ -111,7 +122,7 @@ $('recover-draft').onclick=()=>{
   }catch{status('임시 기록을 읽지 못했어요.');}
 };
 async function saveCurrent(){
-  clearTimeout(saveTimer);if(saving){await saving;return;}if(!token||!currentPage||!dirty||active)return;
+  clearTimeout(saveTimer);if(saving){await saving;return;}if(!token||!currentPage||!dirty||active||stickerEditor.isActive())return;
   const pageId=currentPage.id,version=editVersion,data=snapshot();
   saving=(async()=>{try{
     const saved=await api('/api/session/pages/'+pageId,'PUT',data);
@@ -123,7 +134,7 @@ async function saveCurrent(){
   }catch(e){if(e.message==='ARTWORK_CONFLICT')autoBlocked=true;$('save-state').textContent='서버 저장에 실패했어요. 이 기기의 임시 기록은 유지됩니다.';throw e;}finally{saving=null;}})();
   await saving;
 }
-async function leavePage(){if(active)return false;await saveCurrent();return !dirty;}
+async function leavePage(){if(active||stickerEditor.isActive())return false;await saveCurrent();return !dirty;}
 function restoreSelection(){if(!currentPage)return;const d=library.diaries.find(item=>item.id===currentPage.diaryId);$('child').value=d.childId;$('trip').value=d.tripId;renderLibrary();$('diary').value=d.id;renderLibrary();$('page').value=currentPage.id;}
 for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),async()=>{
   const wanted=$(id).value;
@@ -132,7 +143,7 @@ for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),as
   if(next)await openPage(next);else{clearPage();status('그림일기와 페이지를 추가해주세요.');}
   }catch(e){restoreSelection();throw e;}
 });
-function clearPage(){clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
+function clearPage(){clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
 for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
   if(!await leavePage())return;
   const path={child:'children',trip:'trips',diary:'diaries'}[kind];
@@ -162,8 +173,9 @@ $('join-form').onsubmit = event => {
 };
 function point(event){const rect=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(600,(event.clientX-rect.left)*600/rect.width))*10)/10,Math.round(Math.max(0,Math.min(400,(event.clientY-rect.top)*400/rect.height))*10)/10];}
 canvas.onpointerdown=event=>{
-  if(!token||!palette||!currentPage||active||event.button!==0)return;
-  if(strokes.length>=1000||strokes.reduce((sum,s)=>sum+s.points.length,0)>=20000){status('그림의 획 한도에 도달했어요. 실행 취소 후 다시 그려주세요.');return;}
+  if(!token||!palette||!currentPage||active||stickerEditor.isActive()||tool==='move'||event.button!==0)return;
+  stickerEditor.select(null);
+  if(strokes.length>=1000||strokes.reduce((sum,s)=>sum+s.points.length,0)+stickerEditor.pointCount()>=20000){status('그림의 획 한도에 도달했어요. 실행 취소 후 다시 그려주세요.');return;}
   active={tool,color:selected,width:Number($('size').value),points:[point(event)],pointerId:event.pointerId};
   canvas.setPointerCapture(event.pointerId);redraw();
 };
@@ -171,15 +183,17 @@ canvas.onpointermove=event=>{
   if(!active||active.pointerId!==event.pointerId)return;
   const points=active.points,next=point(event),last=points.at(-1);
   if(Math.hypot(next[0]-last[0],next[1]-last[1])<1)return;
-  if(points.length<2000&&strokes.reduce((sum,s)=>sum+s.points.length,0)+points.length<20000){points.push(next);redraw();}
+  if(points.length<2000&&strokes.reduce((sum,s)=>sum+s.points.length,0)+stickerEditor.pointCount()+points.length<20000){points.push(next);redraw();}
 };
 function finish(event){if(!active||active.pointerId!==event.pointerId)return;const {pointerId,...stroke}=active;strokes.push(stroke);active=null;undone=[];changed();redraw();}
 canvas.onpointerup=finish;canvas.onpointercancel=finish;canvas.onlostpointercapture=finish;
-$('brush').onclick=()=>{tool='paint';$('brush').setAttribute('aria-pressed','true');$('eraser').setAttribute('aria-pressed','false');};
-$('eraser').onclick=()=>{tool='erase';$('brush').setAttribute('aria-pressed','false');$('eraser').setAttribute('aria-pressed','true');};
+function setTool(value){tool=value;stickerEditor.mode(value);$('brush').setAttribute('aria-pressed',String(value==='paint'));$('eraser').setAttribute('aria-pressed',String(value==='erase'));$('move-sticker').setAttribute('aria-pressed',String(value==='move'));}
+$('brush').onclick=()=>setTool('paint');$('eraser').onclick=()=>setTool('erase');$('move-sticker').onclick=()=>setTool('move');
+$('sticker-width').oninput=()=>stickerEditor.resize(Number($('sticker-width').value),Number($('sticker-height').value));
+$('sticker-height').oninput=$('sticker-width').oninput;$('remove-sticker').onclick=()=>stickerEditor.remove();
 $('size').oninput=()=>{$('size-label').textContent=$('size').value;};
-$('undo').onclick=()=>{if(strokes.length){undone.push(strokes.pop());changed();redraw();}};
-$('redo').onclick=()=>{if(undone.length){strokes.push(undone.pop());changed();redraw();}};
+$('undo').onclick=()=>{if(stickerEditor.undo())return;if(strokes.length){undone.push(strokes.pop());changed();redraw();}};
+$('redo').onclick=()=>{if(stickerEditor.redo())return;if(undone.length){strokes.push(undone.pop());changed();redraw();}};
 $('save').onclick=()=>busy($('save'),async()=>{
   if(!currentPage){status('먼저 페이지를 추가해주세요.');return;}
   if(active){status('펜을 뗀 뒤 저장해주세요.');return;}

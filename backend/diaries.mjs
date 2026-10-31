@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { validateStrokes } from '../core/artwork.mjs';
+import { validateStickerPlacements } from '../core/journey.mjs';
+import { initializeStickers, ownedStickers } from './stickers.mjs';
 
 function name(value, max = 80) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error('INVALID_DIARY');
@@ -8,6 +10,7 @@ function name(value, max = 80) {
 export class DiaryStore {
   constructor(accounts) {
     this.accounts = accounts;
+    initializeStickers(accounts);
     this.db = accounts.db;
     this.db.exec(`PRAGMA foreign_keys=ON;
       CREATE TABLE IF NOT EXISTS families(id TEXT PRIMARY KEY, owner_hash TEXT NOT NULL UNIQUE);
@@ -86,7 +89,7 @@ export class DiaryStore {
     const row=this.db.prepare(`SELECT p.* FROM pages p JOIN diaries d ON d.id=p.diary_id
       JOIN trips t ON t.id=d.trip_id WHERE p.id=? AND t.family_id=?`).get(id,family);
     if(!row)throw new Error('DIARY_NOT_FOUND');
-    return {id:row.id,diaryId:row.diary_id,position:row.position,...JSON.parse(row.data),revision:row.revision};
+    return {id:row.id,diaryId:row.diary_id,position:row.position,stickers:[],...JSON.parse(row.data),revision:row.revision};
   }
   savePage(token,id,body) {
     const title=name(body?.title);
@@ -99,7 +102,17 @@ export class DiaryStore {
       if(current.revision!==body.revision)throw new Error('ARTWORK_CONFLICT');
       if(body.template!==current.template)throw new Error('INVALID_DIARY');
       const strokes=validateStrokes(body.strokes,this.accounts.sessionPalette(token));
-      const data={title,text:body.text,template:current.template,strokes,legacyRegions:current.legacyRegions};
+      // Old clients must preserve new sticker data rather than silently removing it.
+      const placements=body.stickers??current.stickers;
+      const geometry=validateStickerPlacements(placements,ownedStickers(this.accounts,token));
+      let totalPoints=strokes.reduce((sum,s)=>sum+s.points.length,0);
+      const stickers=geometry.map((item,i)=>{
+        const paint=validateStrokes(placements[i].strokes??[],this.accounts.sessionPalette(token));
+        totalPoints+=paint.reduce((sum,s)=>sum+s.points.length,0);
+        return {...item,strokes:paint};
+      });
+      if(totalPoints>20000)throw new Error('INVALID_ARTWORK');
+      const data={title,text:body.text,template:current.template,strokes,stickers,legacyRegions:current.legacyRegions};
       this.db.prepare('UPDATE pages SET data=?,revision=revision+1 WHERE id=?').run(JSON.stringify(data),id);
       this.db.exec('COMMIT');return {...current,...data,revision:current.revision+1};
     }catch(error){this.db.exec('ROLLBACK');throw error;}

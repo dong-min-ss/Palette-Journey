@@ -18,14 +18,15 @@
     <details class="card catalog"><summary>색깔·스티커 사전 · 경주</summary><p id="catalog-note" class="hint"></p><h2>기본 스티커</h2><div id="basic-stickers" class="catalog-grid"></div><h2>경주 방문으로 만나는 스티커</h2><div id="regional-stickers" class="catalog-grid"></div><h2>경주의 색 3가지</h2><div id="regional-colors" class="catalog-grid"></div></details>
     <label for="page-title">페이지 제목</label><input id="page-title" maxlength="80" placeholder="오늘 기억하고 싶은 순간">
     <p>색을 고르고 손가락이나 펜으로 직접 칠해보세요. 지나간 부분만 색이 남아요.</p>
-    <div class="drawing-tools"><button id="brush" aria-pressed="true">브러시</button><button id="eraser" class="secondary" aria-pressed="false">지우개</button><button id="undo" class="secondary">실행 취소</button><button id="redo" class="secondary">다시 실행</button><label for="size">굵기 <output id="size-label">12</output><input id="size" type="range" min="2" max="48" value="12"></label></div>
+    <section class="card sticker-tools"><h2>색칠할 스티커 붙이기</h2><div id="sticker-picker" class="sticker-picker"></div><p class="hint">붙인 뒤 이동 모드로 드래그하세요. 브러시로 스티커 위를 직접 칠할 수 있어요.</p><div id="sticker-selection" hidden><span id="sticker-name"></span><label>가로 <input id="sticker-width" type="range" min="20" max="360" value="140"></label><label>세로 <input id="sticker-height" type="range" min="20" max="360" value="140"></label><button id="remove-sticker" class="secondary">선택 스티커 빼기</button></div></section>
+    <div class="drawing-tools"><button id="brush" aria-pressed="true">브러시</button><button id="eraser" class="secondary" aria-pressed="false">지우개</button><button id="move-sticker" class="secondary" aria-pressed="false">스티커 이동</button><button id="undo" class="secondary">실행 취소</button><button id="redo" class="secondary">다시 실행</button><label for="size">굵기 <output id="size-label">12</output><input id="size" type="range" min="2" max="48" value="12"></label></div>
     <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="펜과 손가락으로 색칠하는 여행길 풍경"></canvas><svg viewBox="0 0 600 400" aria-hidden="true">
       <rect x="5" y="5" width="590" height="390" rx="24"/>
       <circle cx="465" cy="90" r="43"/>
       <path d="M5 260 L155 90 L285 240 L370 150 L595 285"/>
       <path d="M5 295 Q150 225 300 285 T595 270"/>
       <path d="M285 280 L320 280 Q295 325 410 395 M190 395 Q320 320 285 280"/>
-    </svg></div></div>
+    </svg><div id="sticker-layer"></div></div></div>
     <label for="page-text">오늘의 이야기 <span class="hint">그림만 남겨도 괜찮아요.</span></label><textarea id="page-text" maxlength="2000" rows="4" placeholder="오늘 가장 기억나는 일은 무엇인가요?"></textarea>
     <div class="card palette-card"><div class="section-title"><h2>여행 팔레트</h2><span id="tickets" class="badge"></span></div><div id="palette" role="group" aria-label="색 선택"></div><p id="selected" class="hint"></p>
       <form id="unlock-form"><label for="personal">나만의 색 추가</label><div class="actions"><input id="personal" type="color" value="#568A91"><button id="unlock" type="submit" class="secondary">티켓 1장으로 해금</button></div></form>

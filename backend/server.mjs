@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { AccountStore, accountKey } from './store.mjs';
 import { DiaryStore } from './diaries.mjs';
 import { contentCatalog } from '../core/catalog.mjs';
+import { ownedStickers } from './stickers.mjs';
 
 async function readJson(req) {
   const chunks=[];let length=0;
@@ -26,7 +27,8 @@ export function createApp(store) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     try {
       const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
-      for(const file of ['star','heart','cheomseongdae','silla-crown'])assets[`/assets/stickers/${file}.svg`]=[`assets/stickers/${file}.svg`,'image/svg+xml'];
+      for(const file of ['star','heart','cheomseongdae','silla-crown'])for(const suffix of ['', '-outline'])assets[`/assets/stickers/${file}${suffix}.svg`]=[`assets/stickers/${file}${suffix}.svg`,'image/svg+xml'];
+      assets['/stickers.mjs']=['stickers.mjs','text/javascript; charset=utf-8'];
       if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
         const [file, type] = assets[req.url];
         res.setHeader('Content-Type', type);
@@ -38,7 +40,7 @@ export function createApp(store) {
       const token = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization ?? '')?.[1];
       accountKey(token);
       let result;
-      if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token));
+      if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token));
       else if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);
       else if(req.method==='POST'&&req.url==='/api/session/children')result=diaries.createChild(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/trips')result=diaries.createTrip(token,await readJson(req));
@@ -73,7 +75,7 @@ export function createApp(store) {
     } catch (error) {
       const codes = { UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
-        INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404 };
+        INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400 };
       res.statusCode = codes[error.message] ?? 500;
       res.end(JSON.stringify({ error: res.statusCode === 500 ? 'INTERNAL_ERROR' : error.message }));
     }

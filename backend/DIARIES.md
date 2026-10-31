@@ -26,7 +26,7 @@
 | POST /api/session/diaries | {title, childId, tripId} |
 | POST /api/session/diaries/{id}/pages | {title, template: blank 또는 landscape} |
 | GET /api/session/pages/{id} | {id, diaryId, position, title, text, template, strokes, legacyRegions, revision} |
-| PUT /api/session/pages/{id} | {title, text, template, strokes, revision} |
+| PUT /api/session/pages/{id} | {title, text, template, strokes, stickers, revision} |
 
 제목은1~80자, 글은0~2000자다. 글만 있거나 그림만 있어도 저장할 수 있다.
 도안은 페이지 생성 시 고르며 저장 요청으로 바꿀 수 없다. 획 검증은 core/artwork.mjs를 사용한다.
@@ -43,4 +43,14 @@
 저장 중 추가 변경은 새 버전으로 다시 저장한다. 충돌 후에는 자동 재시도를 멈춘다.
 현재 기기 임시 기록은 해당 브라우저 저장소에만 있으며 데이터 삭제 시 사라진다.
 
-스티커·음성·방문 지역·여행책 감상·공개 출품은 아직 페이지 API에 연결하지 않았다.
+## 스티커 배치와 색칠
+
+stickers는 최대100개 인스턴스 배열이다. 각 항목은 id,stickerId,x,y,width,height,strokes를 가진다.
+위치·크기는 페이지600×400 안에 들어가야 하며 인스턴스ID는 중복할 수 없다. 같은 자산은 여러 번 쓸 수 있다.
+스티커 색칠 획은 해당 인스턴스 내부600×400 좌표로 저장해 이동·크기 변경 시 같이 변형한다.
+전체 페이지+스티커 색칠은 총20000점 제한이며 팔레트에 해금된 색만 쓸 수 있다.
+기본 자산은 무료 사용하며 지역 자산은 서버 sticker_ownership의 계정별 보유 기록으로 검사한다.
+클라이언트가 방문/보유를 스스로 증명하는 API는 없다. 지역 지급은 아직 미구현이다.
+구형 클라이언트가 stickers 필드를 생략하면 기존 스티커를 보존한다. 명시적 빈 배열은 스티커 제거다.
+
+음성·방문 지역·여행책 감상·공개 출품은 아직 페이지 API에 연결하지 않았다.

@@ -10,9 +10,9 @@ export const REGIONAL_COLORS = Object.freeze([
   {id:'gyeongju-gold',name:'신라 금빛',hex:'#D9AA38',regionId:'gyeongju',motif:'신라 금관',description:'금관의 반짝임에서 떠올린 황금빛이에요.',acquisition:'경주 체류 또는 지정 장소 방문 확인 후 수집 예정 · 조건 준비 중'},
   {id:'gyeongju-night',name:'첨성대 별밤',hex:'#293C70',regionId:'gyeongju',motif:'별을 바라보는 밤',description:'첨성대 위로 펼쳐지는 밤하늘을 상상한 남색이에요.',acquisition:'경주 체류 또는 지정 장소 방문 확인 후 수집 예정 · 조건 준비 중'},
 ]);
-export function contentCatalog(palette) {
+export function contentCatalog(palette, owned=[]) {
   return {region:{id:'gyeongju',name:'경주'},phase:'preview',
-    stickers:STICKERS.map(item=>({...item,unlocked:item.kind==='basic'})),
+    stickers:STICKERS.map(item=>({...item,unlocked:item.kind==='basic'||owned.some(s=>s.stickerId===item.id)})),
     colors:REGIONAL_COLORS.map(item=>({...item,unlocked:palette.colors.some(c=>c.id===`region-${item.id}`)})),
     note:'경주부터 시작하는 사전이에요. 지역 방문 판정과 스티커 해금은 준비 중이에요. 색은 창작용 시안이며 실제 표준색이 아니에요.'};
 }
