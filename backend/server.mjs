@@ -40,7 +40,7 @@ export function createApp(store) {
       const token = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization ?? '')?.[1];
       accountKey(token);
       let result;
-      if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token));
+      if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickerAccess===true);
       else if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);
       else if(req.method==='POST'&&req.url==='/api/session/children')result=diaries.createChild(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/trips')result=diaries.createTrip(token,await readJson(req));
@@ -86,6 +86,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const directory = fileURLToPath(new URL('./data/', import.meta.url));
   mkdirSync(directory, { recursive: true });
   const store = new AccountStore(resolve(directory, 'palette.sqlite'));
+  store.developmentStickerAccess = process.env.PALETTE_DEV_UNLOCK_STICKERS === '1';
   const server = createApp(store);
   server.listen(3000, '127.0.0.1', () => console.log('Palette Journey: http://127.0.0.1:3000'));
   const stop = () => server.close(() => { store.close(); });

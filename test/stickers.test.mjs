@@ -51,3 +51,33 @@ test('all sticker assets are monochrome and outline overlays have no opaque fill
     assert.match(svg,/preserveAspectRatio="none"/);
   }
 });
+
+
+test('corner resize anchors the opposite corner and clamps every edge without changing paint',async()=>{
+  const {resizeSticker}=await import('../web/stickers.mjs');
+  const box={x:100,y:80,width:140,height:120};
+  for(const corner of ['nw','ne','sw','se'])for(const [dx,dy] of [[35,50],[-1000,-1000],[1000,1000]]){
+    const result=resizeSticker(box,corner,dx,dy);
+    assert.ok(result.x>=0&&result.y>=0&&result.width>=20&&result.height>=20);
+    assert.ok(result.x+result.width<=600&&result.y+result.height<=400);
+    assert.equal(corner.includes('w')?result.x+result.width:result.x,corner.includes('w')?240:100);
+    assert.equal(corner.includes('n')?result.y+result.height:result.y,corner.includes('n')?200:80);
+  }
+});
+test('explicit development unlock permits regional save without fabricating visit ownership',()=>{
+  const accounts=new AccountStore(':memory:'),diaries=new DiaryStore(accounts),owner=credential(),member=credential();
+  try{
+    accounts.register(owner);accounts.joinSession(member,accounts.createSession(owner).code);
+    accounts.developmentStickerAccess=true;
+    const catalog=contentCatalog(accounts.get(owner),ownedStickers(accounts,member),true);
+    assert.equal(catalog.stickers.filter(s=>s.developmentUnlocked&&s.unlocked).length,2);
+    let page=diaries.page(member,diaries.library(member).pages[0].id);
+    page=diaries.savePage(member,page.id,{...page,stickers:[placement('tower','gyeongju-cheomseongdae'),placement('crown','gyeongju-silla-crown')]});
+    assert.equal(page.stickers.length,2);
+    assert.equal(accounts.db.prepare('SELECT count(*) AS n FROM sticker_ownership').get().n,0);
+    assert.equal(accounts.get(owner).tickets,1);
+    accounts.developmentStickerAccess=false;
+    assert.equal(ownedStickers(accounts,member).length,2);
+    assert.throws(()=>diaries.savePage(member,page.id,page),/INVALID_STICKER_PLACEMENT/);
+  }finally{accounts.close();}
+});

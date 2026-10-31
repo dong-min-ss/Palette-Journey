@@ -7,7 +7,7 @@ let strokes=[], legacyRegions={}, active=null, undone=[], tool='paint';
 let library=null,currentPage=null,saveTimer=null,saving=null,autoBlocked=false;
 const canvas=$('drawing'), ctx=canvas.getContext('2d');
 const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:()=>strokes.reduce((n,s)=>n+s.points.length,0),getColor:()=>selected,getWidth:()=>Number($('size').value),canEdit:()=>!!token&&!!currentPage&&!active,onChange:changed,onSelect:(item,message)=>{
-  $('sticker-selection').hidden=!item;if(item){$('sticker-name').textContent='선택한 스티커';$('sticker-width').value=item.width;$('sticker-height').value=item.height;}
+  $('sticker-selection').hidden=!item;if(item){$('sticker-name').textContent='선택한 스티커';}
   $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
 }});
 function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
@@ -82,7 +82,7 @@ async function load() {
 function renderCatalog(catalog){
   stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
   for(const item of catalog.stickers){const button=document.createElement('button');button.className='secondary';button.disabled=!item.unlocked;
-    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name+(item.unlocked?' 붙이기':' · 잠김');button.append(image,label);
+    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name+(item.developmentUnlocked?' 붙이기 · 개발용':item.unlocked?' 붙이기':' · 잠김');button.append(image,label);
     button.onclick=()=>{stickerEditor.add(item.id);setTool('move');};$('sticker-picker').append(button);}
   $('catalog-note').textContent=catalog.note;
   for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
@@ -92,7 +92,7 @@ function renderCatalog(catalog){
     else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
     const title=document.createElement('h3');title.textContent=item.name;
     const description=document.createElement('p');description.textContent=item.description;
-    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.unlocked?'해금됨':`잠김 · ${item.acquisition}`;
+    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.unlocked?'해금됨':`잠김 · ${item.acquisition}`;
     card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
   }
 }
@@ -189,8 +189,7 @@ function finish(event){if(!active||active.pointerId!==event.pointerId)return;con
 canvas.onpointerup=finish;canvas.onpointercancel=finish;canvas.onlostpointercapture=finish;
 function setTool(value){tool=value;stickerEditor.mode(value);$('brush').setAttribute('aria-pressed',String(value==='paint'));$('eraser').setAttribute('aria-pressed',String(value==='erase'));$('move-sticker').setAttribute('aria-pressed',String(value==='move'));}
 $('brush').onclick=()=>setTool('paint');$('eraser').onclick=()=>setTool('erase');$('move-sticker').onclick=()=>setTool('move');
-$('sticker-width').oninput=()=>stickerEditor.resize(Number($('sticker-width').value),Number($('sticker-height').value));
-$('sticker-height').oninput=$('sticker-width').oninput;$('remove-sticker').onclick=()=>stickerEditor.remove();
+$('remove-sticker').onclick=()=>stickerEditor.remove();
 $('size').oninput=()=>{$('size-label').textContent=$('size').value;};
 $('undo').onclick=()=>{if(stickerEditor.undo())return;if(strokes.length){undone.push(strokes.pop());changed();redraw();}};
 $('redo').onclick=()=>{if(stickerEditor.redo())return;if(undone.length){strokes.push(undone.pop());changed();redraw();}};

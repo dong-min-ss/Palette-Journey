@@ -7,5 +7,5 @@ export function initializeStickers(accounts) {
 export function ownedStickers(accounts, token) {
   const owner=accounts.participantOwner(token);
   const regional=accounts.db.prepare('SELECT sticker_id FROM sticker_ownership WHERE owner_hash=?').all(owner);
-  return STICKERS.filter(s=>s.kind==='basic'||regional.some(row=>row.sticker_id===s.id)).map(s=>({stickerId:s.id}));
+  return STICKERS.filter(s=>s.kind==='basic'||accounts.developmentStickerAccess===true||regional.some(row=>row.sticker_id===s.id)).map(s=>({stickerId:s.id}));
 }

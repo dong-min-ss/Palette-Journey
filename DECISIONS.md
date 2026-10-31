@@ -67,3 +67,7 @@
 - 앱 실행 중 자율 개발은 이 채팅의 작업 루프로 진행한다. 상시 백그라운드 실행·알림 자동화는 아직 구성되지 않았다.
 
 참고: https://document.pleos.ai/en/docs/connect/guide/getting-started/application-development/setup-connect-sdk-emulator
+
+## 2026-10-31 — 직접 모서리 조절 / 개발 해금 분리
+- 스티커 크기는 객체의 네 모서리를 직접 끌어 조절한다. 반대편은 고정하고 가로·세로를 자유롭게 바꾼다. 별도 크기 슬라이더는 사용하지 않는다.
+- 개발 테스트용 지역 스티커는 서버 환경 변수 PALETTE_DEV_UNLOCK_STICKERS=1로만 허용한다. 요청 본문의 플래그를 신뢰하지 않으며 기본은 잠금이다. 로컬 .env는 Git에서 제외한다. 실제 방문 보유 기록을 위조하지 않는다.
