@@ -62,6 +62,7 @@ function renderPalette() {
     button.onclick=()=>{selected=color.hex;renderPalette();}; $('palette').append(button);
   }
   $('tickets').textContent=`컬러티켓 ${palette.tickets}장`;
+  $('current-color').style.backgroundColor=selected;
   $('selected').textContent=`선택한 색: ${names[palette.colors.find(c=>c.hex===selected)?.id] ?? selected}`;
 }
 function applyArtwork(art) {
@@ -83,7 +84,7 @@ function renderCatalog(catalog){
   stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
   for(const item of catalog.stickers){const button=document.createElement('button');button.className='secondary';button.disabled=!item.unlocked;
     const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name+(item.developmentUnlocked?' 붙이기 · 개발용':item.unlocked?' 붙이기':' · 잠김');button.append(image,label);
-    button.onclick=()=>{stickerEditor.add(item.id);setTool('move');};$('sticker-picker').append(button);}
+    button.onclick=()=>{stickerEditor.add(item.id);setTool('move');$('close-menu').click();};$('sticker-picker').append(button);}
   $('catalog-note').textContent=catalog.note;
   for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
   for(const item of [...catalog.stickers,...catalog.colors]){
@@ -215,3 +216,18 @@ window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();
 window.addEventListener('online',()=>{if(token&&dirty&&!autoBlocked)busy($('save'),saveCurrent);});
 try { token=localStorage.getItem(storageKey); if(token) await load(); }
 catch(e) { error(e); }
+
+
+// The menu is closed on entry so the sketchbook remains the primary surface.
+let openedPanel=null;
+function openMenu(name){
+  openedPanel=name;
+  $('menu-drawer').hidden=!name;
+  for(const button of document.querySelectorAll('[data-panel]'))button.setAttribute('aria-expanded',String(button.dataset.panel===name));
+  for(const panel of document.querySelectorAll('.menu-panel'))panel.hidden=panel.id!=='panel-'+name;
+  if(name){if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
+}
+for(const button of document.querySelectorAll('[data-panel]'))button.onclick=()=>openMenu(openedPanel===button.dataset.panel?null:button.dataset.panel);
+$('close-menu').onclick=()=>{const previous=openedPanel;openMenu(null);document.querySelector('[data-panel="'+previous+'"]').focus();};
+$('open-colors').onclick=()=>openMenu(openedPanel==='colors'?null:'colors');
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&openedPanel)$('close-menu').click();});
