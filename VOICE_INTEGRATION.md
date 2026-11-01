@@ -34,3 +34,7 @@
 [SpeechToText 결과 이벤트](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/SpeechToText/result-listeners)와 [시작/중지 API](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/SpeechToText/start-and-stop)를 확인하고 공식 3.3.1 AAR의 실제 메서드 시그니처와 대조했다. 질문 완료 후 request(), 중간/최종 결과, 종료·오류·타임아웃과 정리를 구현했다. 원본 음원 접근·맞춤 후속 질문·웹 녹음 저장은 여전히 별도 과제다.
 
 실마이크 인식은 사용자 직접 시험으로 화면 텍스트 일치를 확인했다. 해당 SDK/이미지 조합은 중간 결과 후 최종 플래그 없이 끝날 수 있어 1초 유예 후 사용자 확인 상태로 전환한다. SDK 확정 결과인 것처럼 처리하지 않는다.
+
+## 2026-11-01 — LLM SDK 종료 확인과 후속 질문 시연
+[공식 Playground 변경 안내](https://document.pleos.ai/en/docs/pleos-only/release-note/playground-release-note)는 LLM SDK 종료와 Gleo Interface 사용을 안내한다. [Gleo Interface 개념](https://document.pleos.ai/en/docs/pleos-only/app-integration-guide/guide/core-concepts)은 앱이 제공하는 기능과 스키마를 통해 Gleo가 호출하고 콜백을 받는 방식이다. 앱에서 임의의 프롬프트를 보내 자유 대화를 생성하는 API로 해석하지 않는다. [스키마 전달 안내](https://document.pleos.ai/en/docs/pleos-only/app-integration-guide/guide/deliver-schema)에는 스키마 검토/승인 절차가 있다. 이번 작업에서는 등록·제출을 하지 않았다.
+따라서 현재 구현은 Gleo 생성형 대화가 아닌 준비된 질문 분기다. 확인된 답변의 음식/장소/활동 단어로 중립적인 질문을 고르고, 같은 질문을 반복하지 않으며 최대 네 질문만 진행한다. 방문/음식 섭취를 지어내지 않는다. 음원·대화 기록은 웹/서버에 연결하지 않았다. 실제 글레오 자유 대화 지원과 앱 기능/스키마 범위는 별도 확인이 필요하다.

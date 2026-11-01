@@ -26,7 +26,9 @@ final class PleosAnswerController {
     PleosAnswerController(Context context, Observer observer) { this.context=context.getApplicationContext(); this.observer=observer; }
     boolean busy() { return turn.busy(); }
     boolean canConfirm() { return turn.state==AnswerTurn.State.REVIEW; }
-    void confirm() { if (turn.confirm()) show("답변 확인 완료 · 이번 시험에서는 저장하지 않아요"); }
+    boolean canUseAnswer() { return turn.state==AnswerTurn.State.REVIEW || turn.state==AnswerTurn.State.RESULT; }
+    String result() { return turn.state==AnswerTurn.State.RESULT ? turn.text : ""; }
+    void confirm() { if (turn.confirm() || turn.state==AnswerTurn.State.RESULT) show("답변 확인 완료 · 이번 시험에서는 저장하지 않아요"); }
     private void show(String status) {
         // Log operational events, never the child's recognized words.
         Log.i("PaletteStt", status);

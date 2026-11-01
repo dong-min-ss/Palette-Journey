@@ -33,11 +33,36 @@ public class MainActivity extends Activity {
     private Button beginAnswer, cancelAnswer, confirmAnswer;
     private TextView answerStatus, answerText;
     private CheckBox answerConsent;
+    private final GuidedConversation conversation = new GuidedConversation();
+    private TextView currentQuestion, conversationHistory, conversationState;
+    private Button skipConversation, endConversation;
+
+    private void renderConversation() {
+        if (conversationState == null) return;
+        currentQuestion.setText(conversation.active() ? conversation.question() : QUESTION);
+        conversationState.setText(conversation.active() ? "준비된 질문 시연 · " + conversation.number() + " / 4번째 질문" : conversation.entries().isEmpty() ? "준비된 질문 분기 · 실제 글레오 AI 대화 미연동" : "대화 시연 종료 · 기록은 이 화면에만 있어요");
+        StringBuilder history = new StringBuilder();
+        int index=1;
+        for (GuidedConversation.Entry entry : conversation.entries()) {
+            history.append(index++).append(". 질문: ").append(entry.question).append("\n")
+                .append(entry.skipped ? "건너뛰었어요" : "확인한 답변: " + entry.answer).append("\n\n");
+        }
+        conversationHistory.setText(history.length()==0 ? "확인한 질문과 답변이 여기에 쌓여요. 화면을 나가면 지워져요." : history.toString());
+        beginAnswer.setText(conversation.active() ? "지금 질문 듣기 / 다시 답하기" : conversation.entries().isEmpty() ? "대화 시연 시작" : "새 대화 시연 시작");
+        skipConversation.setEnabled(conversation.active());
+        endConversation.setEnabled(conversation.active());
+    }
+    private void beginConversationTurn() {
+        if (!answerConsent.isChecked() || !emulatorTestAllowed() || !speechReady || speechBusy || answer.busy()) return;
+        if (!conversation.active()) conversation.start();
+        renderConversation();
+        answer.begin(this::playSpeechQuestion);
+    }
     private void refreshAnswerButtons() {
         if (beginAnswer == null || answer == null) return;
         beginAnswer.setEnabled(emulatorTestAllowed() && speechReady && !speechBusy && !answer.busy() && answerConsent.isChecked());
         cancelAnswer.setEnabled(answer.busy());
-        confirmAnswer.setEnabled(answer.canConfirm());
+        confirmAnswer.setEnabled(conversation.active() && answer.canUseAnswer());
     }
     private void playSpeechQuestion() {
         if (!speechReady || speechBusy || speech == null || !emulatorTestAllowed()) {
@@ -45,7 +70,7 @@ public class MainActivity extends Activity {
         }
         speechBusy = true; updateSpeech("질문 재생 요청 중");
         speechTimeoutAfter(speechEpoch, "음성 재생 응답 지연 · 연결을 다시 확인해주세요");
-        try { speech.setLocale(Locale.KOREA); speech.speak(QUESTION, true); }
+        try { speech.setLocale(Locale.KOREA); speech.speak(conversation.active() ? conversation.question() : QUESTION, true); }
         catch (RuntimeException e) { failSpeech("질문 재생 요청 실패: " + e.getClass().getSimpleName()); }
     }
     private void cancelAnswerTurn() {
@@ -97,7 +122,7 @@ public class MainActivity extends Activity {
         addText(root, "차량 상태 미확인 · 연결 및 창작 조작 잠김", 20);
         addText(root, "음성 질문 연결 시험", 26);
         addText(root, "에뮬레이터 전용 · Pleos 온디바이스 TTS · 질문 출력 시험 · 대화 저장 아님", 18);
-        addText(root, QUESTION, 26);
+        currentQuestion = new TextView(this); currentQuestion.setTextSize(26); currentQuestion.setText(QUESTION); root.addView(currentQuestion);
         speechStatus = new TextView(this);
         speechStatus.setId(R.id.tts_status);
         root.addView(speechStatus);
@@ -116,8 +141,8 @@ public class MainActivity extends Activity {
             catch (RuntimeException e) { failSpeech("중지 실패: " + e.getClass().getSimpleName()); }
         });
         retrySpeech.setOnClickListener(v -> initializeSpeech());
-        addText(root, "질문 듣고 답변 말하기", 26);
-        addText(root, "보호자가 시작하면 질문이 끝난 뒤 최대 30초만 들어요. 기기 안에서 인식하며 이번 시험은 음원·텍스트를 서버에 저장하지 않아요.", 18);
+        addText(root, "답변에 이어지는 여행 이야기", 26);
+        addText(root, "준비된 질문을 답변에 따라 고르는 시연이에요. 실제 AI 대화는 아직 아니에요. 최대 네 질문, 질문마다 30초만 듣고 서버에 저장하지 않아요.", 18);
         answerConsent = new CheckBox(this);
         answerConsent.setText("보호자가 마이크 사용을 허용하고 함께 진행해요"); root.addView(answerConsent);
         answerStatus = new TextView(this); answerStatus.setTextSize(20); root.addView(answerStatus);
@@ -125,22 +150,42 @@ public class MainActivity extends Activity {
         LinearLayout answerActions = new LinearLayout(this);
         beginAnswer = new Button(this); beginAnswer.setText("질문 듣고 답하기 / 다시 말하기");
         cancelAnswer = new Button(this); cancelAnswer.setText("답변 인식 취소");
-        confirmAnswer = new Button(this); confirmAnswer.setText("들은 내용이 맞아요");
+        confirmAnswer = new Button(this); confirmAnswer.setText("들은 내용이 맞아요 / 다음 질문");
         answerActions.addView(beginAnswer); answerActions.addView(cancelAnswer); answerActions.addView(confirmAnswer); root.addView(answerActions);
         answer = new PleosAnswerController(this, (status, text, busy) -> {
             answerStatus.setText(status); answerText.setText(text.isEmpty() ? "인식한 답변이 여기에 표시돼요" : text);
             updateSpeech(speechStatus.getText().toString());
         });
+        conversationState = new TextView(this); conversationState.setTextSize(20); root.addView(conversationState);
+        conversationHistory = new TextView(this); conversationHistory.setTextSize(18); conversationHistory.setTextIsSelectable(true); root.addView(conversationHistory);
+        LinearLayout conversationActions = new LinearLayout(this);
+        skipConversation = new Button(this); skipConversation.setText("질문 건너뛰기");
+        endConversation = new Button(this); endConversation.setText("대화 종료");
+        conversationActions.addView(skipConversation); conversationActions.addView(endConversation); root.addView(conversationActions);
+        skipConversation.setOnClickListener(v -> {
+            if (!conversation.active()) return;
+            cancelAnswerTurn(); conversation.skip(); renderConversation();
+            answerStatus.setText(conversation.active() ? "건너뛰었어요. 준비되면 지금 질문 듣기를 눌러주세요." : "네 질문 시연을 마쳤어요.");
+        });
+        endConversation.setOnClickListener(v -> {
+            conversation.finish(); cancelAnswerTurn(); renderConversation();
+            answerStatus.setText("대화를 종료했어요. 마이크를 닫았어요.");
+        });
+        renderConversation();
         answerStatus.setText("마이크 사용 안내를 확인한 뒤 시작해주세요.");
         answerText.setText("인식한 답변이 여기에 표시돼요");
-        beginAnswer.setOnClickListener(v -> {
-            if (!answerConsent.isChecked() || !emulatorTestAllowed() || !speechReady || speechBusy || answer.busy()) return;
-            answer.begin(this::playSpeechQuestion);
-        });
+        beginAnswer.setOnClickListener(v -> beginConversationTurn());
         cancelAnswer.setOnClickListener(v -> cancelAnswerTurn());
-        confirmAnswer.setOnClickListener(v -> answer.confirm());
+        confirmAnswer.setOnClickListener(v -> {
+            if (!conversation.active() || !answer.canUseAnswer()) return;
+            answer.confirm();
+            if (!conversation.accept(answer.result())) { answerStatus.setText("답변을 다시 확인해주세요."); return; }
+            renderConversation();
+            if (conversation.active()) beginConversationTurn();
+            else { answer.dispose(); refreshAnswerButtons(); answerStatus.setText("대화 시연을 마쳤어요. 확인한 이야기를 아래에서 볼 수 있어요."); }
+        });
         answerConsent.setOnCheckedChangeListener((button, checked) -> {
-            if (!checked && answer.busy()) cancelAnswerTurn();
+            if (!checked) { if (answer.busy()) cancelAnswerTurn(); conversation.finish(); renderConversation(); }
             refreshAnswerButtons();
         });
         ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);
@@ -205,7 +250,7 @@ public class MainActivity extends Activity {
         speechListener = null;
     }
     @Override public void onStart() { super.onStart(); initializeSpeech(); }
-    @Override public void onStop() { if (answer != null) { answer.dispose(); answerConsent.setChecked(false); answerStatus.setText("화면을 떠나 답변 인식을 종료했어요."); answerText.setText("인식한 답변이 여기에 표시돼요"); } releaseSpeech(); updateSpeech("화면을 떠나 음성 연결 종료"); super.onStop(); }
+    @Override public void onStop() { if (answer != null) { conversation.clear(); answer.dispose(); answerConsent.setChecked(false); renderConversation(); answerStatus.setText("화면을 떠나 답변 인식을 종료했어요."); answerText.setText("인식한 답변이 여기에 표시돼요"); } releaseSpeech(); updateSpeech("화면을 떠나 음성 연결 종료"); super.onStop(); }
     private void addText(LinearLayout root, String text, int size) {
         TextView view = new TextView(this);
         view.setText(text);
