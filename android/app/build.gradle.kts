@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    buildFeatures { buildConfig = true }
     namespace = "com.palettejourney"
     compileSdk {
         version = release(37)
@@ -33,6 +34,7 @@ android {
 }
 
 dependencies {
+    implementation("ai.pleos.playground:TextToSpeech:3.3.1")
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)

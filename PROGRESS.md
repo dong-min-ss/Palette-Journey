@@ -171,3 +171,11 @@
 ## 2026-11-01 — 그림일기 기본 풍경 도안 제거
 - 첫 페이지를 빈 종이로 생성하고 웹에서 고정 풍경 SVG와 새 페이지 도안 선택을 제거했다. 기존 landscape 페이지도 고정 선은 표시하지 않는다. 기존 그림·스티커·글·음성과 저장 메타데이터는 유지한다.
 - 검증: 전체 테스트 30개 통과, 브라우저에서 기존 첫 페이지의 풍경 선이 사라지고 빈 종이로 표시됨을 확인했다.
+
+## 2026-11-01 — Pleos SDK 연결 및 질문 한 문장 재생
+- 공식 SDK 문서와 Maven 배포본 API 확인. TextToSpeech 3.3.1, TTS_SERVICE, ON_DEVICE, Locale.KOREA 연결. 계정 등록/시크릿/STT 마이크 없이 질문 음성 출력만 구현했다.
+- Android 화면에 질문 한 문장 듣기/음성 중지/다시 연결, 초기화·재생 상태와 20초 지연 처리를 추가했다. 화면 이탈 시 stop/removeEventListener/release, 늦은 콜백 무시. 실차/릴리스 빌드 조작은 잠근다.
+- 기존 Pleos_Connect_v2.1.0 AVD 콜드 부팅, emulator-5554/API34/boot_completed=1 확인. 기존 원본 AndroidStudioProjects는 수정하지 않았다.
+- gradlew.bat :app:assembleDebug :app:testDebugUnitTest 성공. 최종 APK 설치 성공. TTS_SERVICE granted=true, SDK 초기화 성공 및 화면 버튼 클릭에 따른 onReady/onStart/onDone을 최종 빌드에서 확인했다. 크래시 없음. evidence/pleos-tts-complete.png 기록.
+- connectedDebugAndroidTest 시도는 테스트 프로세스에서 SDK 초기화 응답이 지연되어 중단했다. 통과로 기록하지 않는다. 해당 실험 테스트는 제거하고 일반 앱 실행의 실제 화면 조작과 로그로 검증했다. 자동 UI 실행 환경의 원인은 미확정이다.
+- 이번 범위 1 SDK 연결/2 질문 재생은 완료. 호스트 스피커 음질 청취·측정, STT 답변 인식, 자유 대화/후속 질문, 음원 파일 접근·웹 저장 연결은 후속.

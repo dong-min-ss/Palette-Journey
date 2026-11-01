@@ -29,7 +29,7 @@
 실행: Node 24 이상에서 `npm.cmd run check`.
 
 개발 순서와 단계별 통과 기준은 ROADMAP.md, 현황은 PROGRESS.md, 설계 선택은 DECISIONS.md를 참고한다.
-Android 첫 화면은 `android`에 있다. 기본 11색과 개발 상태 안내를 표시하며 계정·차량 API는 아직 연결하지 않았다.
+Android 첫 화면은 `android`에 있다. 기본 11색과 개발 상태 안내, 에뮬레이터 전용 Pleos TTS 질문 재생 시험을 제공한다. 계정·차량 상태 API는 아직 연결하지 않았다.
 Android 빌드: `cd android` 후 `gradlew.bat :app:assembleDebug :app:testDebugUnitTest`.
 SDK 경로는 Git에서 제외되는 android/local.properties에 설정한다.
 백엔드는 `npm.cmd start`로 실행한다. 계정·팔레트 저장과 개인 색 해금 API는 backend/README.md를 참고한다.
@@ -51,3 +51,7 @@ QR 화면·차량 앱 API 연결·휴대폰 실기기 접속은 후속 구현이
 
 ### 기본 그림 제거
 그림일기는 빈 흰 종이에서 시작한다. 고정 풍경 도안과 도안 선택 UI를 제거했다. 기존 페이지에도 풍경 선을 덧씌우지 않으며 직접 그린 내용·스티커·글·음성은 유지한다.
+
+### 차량 질문 음성 재생
+Android 앱에 공식 Pleos TextToSpeech 3.3.1의 ON_DEVICE 모드를 연결했다. 현재 Pleos v2.1.0/API34 에뮬레이터에서 질문 한 문장 듣기를 누르면 “오늘 어떤 일이 있었어?”를 한국어로 합성·재생한다. 초기화·재생 시작·완료 콜백과 TTS_SERVICE 허용을 실제 확인했다. 음성 중지/재연결/응답 지연 안내와 화면 이탈 시 해제를 제공한다. 실차·배포 빌드는 차량 상태 연결 전까지 시험 조작을 잠근다.
+실제 AI 대화·아이 답변 인식·질문 음원을 웹 녹음에 연결하는 기능은 아직 없다. 차량 온디바이스 질문 재생은 웹 녹음 시연과 별개다. 자세한 실행은 android/README.md를 참고한다.
