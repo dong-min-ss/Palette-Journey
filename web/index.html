@@ -12,12 +12,13 @@
   </section>
   <section id="studio" hidden>
 
-    <div class="appbar"><span class="app-logo">Palette Journey <span>나의 스케치북</span></span><div class="appbar-actions"><span id="save-state" class="hint" role="status">자동 저장</span><button id="save">페이지 저장하기</button></div></div>
+    <div class="appbar"><span class="app-logo">Palette Journey <span>나의 스케치북</span></span><div class="appbar-actions"><span id="voice-indicator" class="badge" hidden></span><span id="save-state" class="hint" role="status">자동 저장</span><button id="save">페이지 저장하기</button></div></div>
     <nav class="side-menu" aria-label="스케치북 메뉴">
       <button data-panel="book" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">▤</span>여행책</button>
       <button data-panel="story" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">✎</span>제목·글</button>
       <button data-panel="stickers" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">☆</span>스티커</button>
       <button data-panel="colors" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">◉</span>색상</button>
+      <button data-panel="voice" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">♬</span>음성 일기</button>
       <button data-panel="catalog" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">◇</span>사전</button>
     </nav>
     <aside id="menu-drawer" aria-label="스케치북 설정" hidden><button id="close-menu" class="secondary" aria-label="메뉴 닫기">닫기 ×</button>
@@ -36,6 +37,16 @@
 </section>
       <section id="panel-catalog" class="menu-panel" aria-labelledby="heading-catalog" hidden><h2 id="heading-catalog">여행의 색과 스티커</h2>    <details class="card catalog"><summary>색깔·스티커 사전 · 경주</summary><p id="catalog-note" class="hint"></p><h2>기본 스티커</h2><div id="basic-stickers" class="catalog-grid"></div><h2>경주 방문으로 만나는 스티커</h2><div id="regional-stickers" class="catalog-grid"></div><h2>경주의 색 3가지</h2><div id="regional-colors" class="catalog-grid"></div></details>
 </section>
+      <section id="panel-voice" class="menu-panel" aria-labelledby="heading-voice" hidden>
+        <h2 id="heading-voice">말로 남기는 여행</h2><p class="badge">준비된 질문 시연 · 실제 AI 미연동</p>
+        <p>보호자가 질문을 읽고 아이가 답해요. 마이크에 들어오는 질문과 답변을 함께 녹음해요.</p>
+        <p class="hint">최대 2분 · 이 서버에 가족 비공개로 저장해요. 외부 AI로 전송하거나 자동 문자 변환하지 않아요. 저장 전 녹음은 이 화면에만 남아요.</p>
+        <label class="voice-consent"><input id="voice-consent" type="checkbox"> 보호자가 녹음·비공개 보관 안내를 확인했고 함께 진행해요.</label>
+        <div class="voice-prompt"><span class="hint">보호자가 읽어주세요</span><p id="voice-question">오늘 어떤 일이 있었어?</p><span id="voice-clock">0 / 120초</span></div>
+        <div class="voice-actions"><button id="voice-start">보호자가 녹음 시작</button><button id="voice-next" class="secondary" disabled>건너뛰고 다음 질문</button><button id="voice-pause" class="secondary" disabled>잠시 쉬기</button><button id="voice-stop" class="secondary" disabled>녹음 종료</button></div>
+        <p id="voice-status" role="status" aria-live="polite">페이지를 선택해주세요.</p><audio id="voice-player" controls hidden></audio><ol id="voice-cues"></ol>
+        <div class="voice-actions"><button id="voice-save" disabled>이 페이지에 녹음 저장</button><button id="voice-download" class="secondary" disabled>저장 전 녹음 내려받기</button><button id="voice-discard" class="secondary" disabled>저장 전 녹음 버리기</button><button id="voice-play" class="secondary" disabled>저장된 대화 듣기</button><button id="voice-delete" class="secondary" disabled>저장된 녹음 삭제</button></div>
+      </section>
     </aside>
     <section class="sketch-workspace" aria-label="스케치북">    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="펜과 손가락으로 색칠하는 여행길 풍경"></canvas><svg viewBox="0 0 600 400" aria-hidden="true">
       <rect x="5" y="5" width="590" height="390" rx="24"/>

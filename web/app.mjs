@@ -1,3 +1,4 @@
+import {createVoiceDiary} from './voice.mjs';
 import {createStickerEditor} from './stickers.mjs';
 const $ = id => document.getElementById(id);
 const storageKey = 'palette-journey-participant';
@@ -10,6 +11,7 @@ const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:
   $('sticker-selection').hidden=!item;if(item){$('sticker-name').textContent='선택한 스티커';}
   $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
 }});
+const voiceDiary=createVoiceDiary({getPage:()=>currentPage,getToken:()=>token,api});
 function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
 function changed(){
   if(!currentPage){status('먼저 그림일기와 페이지를 추가해주세요.');return;}
@@ -111,6 +113,7 @@ async function openPage(id){
   $('page-title').value=page.title;$('page-text').value=page.text;
   $('page-title').disabled=false;$('page-text').disabled=false;$('save').disabled=false;
   document.querySelector('.drawing-surface').classList.toggle('blank',page.template==='blank');applyArtwork(page);
+  voiceDiary.load(page.id);
   localStorage.setItem('pj-last-page-'+library.familyId,page.id);
   $('recover-draft').hidden=true;const draft=localStorage.getItem('pj-draft-'+page.id);
   if(draft){try{const data=JSON.parse(draft);if(data.revision===page.revision){$('page-title').value=data.title;$('page-text').value=data.text;applyArtwork(data);changed();status('이 기기의 임시 기록을 복원했어요.');}else{$('recover-draft').hidden=false;status('서버와 임시 기록의 버전이 달라요. 서버 기록을 불러왔으며 임시 기록도 보존했어요.');}}catch{status('임시 기록을 읽지 못해 서버 기록을 불러왔어요.');}}
@@ -135,7 +138,7 @@ async function saveCurrent(){
   }catch(e){if(e.message==='ARTWORK_CONFLICT')autoBlocked=true;$('save-state').textContent='서버 저장에 실패했어요. 이 기기의 임시 기록은 유지됩니다.';throw e;}finally{saving=null;}})();
   await saving;
 }
-async function leavePage(){if(active||stickerEditor.isActive())return false;await saveCurrent();return !dirty;}
+async function leavePage(){if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 페이지를 이동해주세요.');return false;}if(active||stickerEditor.isActive())return false;await saveCurrent();return !dirty;}
 function restoreSelection(){if(!currentPage)return;const d=library.diaries.find(item=>item.id===currentPage.diaryId);$('child').value=d.childId;$('trip').value=d.tripId;renderLibrary();$('diary').value=d.id;renderLibrary();$('page').value=currentPage.id;}
 for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),async()=>{
   const wanted=$(id).value;
@@ -144,7 +147,7 @@ for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),as
   if(next)await openPage(next);else{clearPage();status('그림일기와 페이지를 추가해주세요.');}
   }catch(e){restoreSelection();throw e;}
 });
-function clearPage(){clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
+function clearPage(){voiceDiary.load(null);clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
 for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
   if(!await leavePage())return;
   const path={child:'children',trip:'trips',diary:'diaries'}[kind];
@@ -200,6 +203,7 @@ $('save').onclick=()=>busy($('save'),async()=>{
   await saveCurrent();status('페이지를 저장했어요.');
 });
 $('reload').onclick=()=>busy($('reload'),async()=>{
+  if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 다시 불러와주세요.');return;}
   if(dirty&&!confirm('저장하지 않은 변경을 버리고 저장된 그림을 불러올까요?'))return;
   clearTimeout(saveTimer);if(currentPage)localStorage.removeItem('pj-draft-'+currentPage.id);dirty=false;
   await load();status('저장된 그림을 불러왔어요.');
@@ -208,11 +212,12 @@ $('unlock-form').onsubmit=event=>{event.preventDefault();busy($('unlock'),async(
   palette=await api('/api/session/palette/personal','POST',{hex:$('personal').value});selected=$('personal').value.toUpperCase();renderPalette();status('새 색이 팔레트에 추가됐어요.');
 });};
 $('disconnect').onclick=()=>{
+  if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 연결을 나가주세요.');return;}voiceDiary.reset();
   if(dirty&&!confirm('저장하지 않은 그림이 있어요. 연결에서 나갈까요?'))return;
   clearTimeout(saveTimer);localStorage.removeItem(storageKey);token=null;palette=null;dirty=false;pendingJoin=null;currentPage=null;
   $('studio').hidden=true;$('connection').hidden=false;status('이 기기에서 연결을 나왔어요.');
 };
-window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(dirty||voiceDiary.blocked()){event.preventDefault();event.returnValue='';}});
 window.addEventListener('online',()=>{if(token&&dirty&&!autoBlocked)busy($('save'),saveCurrent);});
 try { token=localStorage.getItem(storageKey); if(token) await load(); }
 catch(e) { error(e); }
@@ -225,7 +230,7 @@ function openMenu(name){
   $('menu-drawer').hidden=!name;
   for(const button of document.querySelectorAll('[data-panel]'))button.setAttribute('aria-expanded',String(button.dataset.panel===name));
   for(const panel of document.querySelectorAll('.menu-panel'))panel.hidden=panel.id!=='panel-'+name;
-  if(name){if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
+  if(name){if(name==='voice')voiceDiary.opened();if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
 }
 for(const button of document.querySelectorAll('[data-panel]'))button.onclick=()=>openMenu(openedPanel===button.dataset.panel?null:button.dataset.panel);
 $('close-menu').onclick=()=>{const previous=openedPanel;openMenu(null);document.querySelector('[data-panel="'+previous+'"]').focus();};
