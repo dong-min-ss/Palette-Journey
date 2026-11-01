@@ -35,3 +35,6 @@ body:has(#studio:not([hidden])) #status{position:fixed;left:104px;bottom:2px;mar
 .voice-consent{display:flex;gap:10px;align-items:flex-start;line-height:1.6;margin:20px 0}.voice-consent input[type=checkbox]{width:20px;min-width:20px;height:20px;padding:0;margin:3px 0}.voice-prompt{background:#f1f5ec;border-radius:16px;padding:18px;margin:20px 0}.voice-prompt p{font-size:20px;font-weight:600;color:#233c38;line-height:1.5}.voice-actions{display:grid;gap:10px}.voice-actions button{width:100%}#voice-clock{font-variant-numeric:tabular-nums;font-size:12px;color:#687c70}#voice-player{width:100%;margin-top:12px}#voice-cues{padding-left:20px;font-size:12px;line-height:1.8}#voice-status{font-size:13px}#voice-indicator{background:#fff0e8;color:#9a402a;font-size:11px}@media(max-width:760px){.appbar #voice-indicator{position:fixed;top:63px;right:12px;z-index:14;padding:6px 8px;font-size:10px}.side-menu{overflow-y:auto}}
 
 @media(min-width:761px){#studio:has(#menu-drawer:not([hidden])) .tool-dock{left:calc(50% + 214px);max-width:calc(100% - 452px);width:max-content;flex-wrap:wrap;justify-content:center}#studio:has(#menu-drawer:not([hidden])) .drawing-tools{flex-wrap:wrap;justify-content:center}}
+
+.side-menu{overflow-y:auto;}
+#pair-code{overflow-wrap:anywhere;}

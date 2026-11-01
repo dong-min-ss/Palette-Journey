@@ -32,7 +32,7 @@ function redraw(){
   for(const stroke of strokes)drawStroke(stroke);if(active)drawStroke(active);
   ctx.globalCompositeOperation='source-over';$('undo').disabled=!strokes.length;$('redo').disabled=!undone.length;
 }
-const messages = { UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', NO_TICKET:'사용할 티켓이 없어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
+const messages = { CONNECTION_CONFLICT:'다른 기기에서 함께 볼 페이지를 바꿨어요. 연결 상태를 확인하고 다시 선택해주세요.', UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', NO_TICKET:'사용할 티켓이 없어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
 messages.INVALID_DIARY='제목·별명과 글 길이를 확인해주세요. 제목은 비워둘 수 없어요.';
 messages.DIARY_NOT_FOUND='이 가족의 기록을 찾지 못했어요. 다시 연결해주세요.';
 messages.INVALID_STICKER_PLACEMENT='보유하지 않은 스티커이거나 페이지 밖으로 벗어난 배치예요.';
@@ -164,6 +164,7 @@ $('page-title').oninput=changed;$('page-text').oninput=changed;
 $('join-form').onsubmit = event => {
   event.preventDefault();
   busy($('join'), async()=>{
+    if(voiceDiary.blocked()){status('녹음을 저장하거나 버린 뒤 연결해주세요.');return;}
     if (dirty && !confirm('연결을 바꾸면 저장하지 않은 그림이 사라집니다. 계속할까요?')) return;
     const code=$('code').value.trim().toLowerCase();
     if (!/^[a-f0-9]{24}$/.test(code)) {status('24자리 연결 코드를 확인해주세요.');return;}
@@ -236,3 +237,15 @@ for(const button of document.querySelectorAll('[data-panel]'))button.onclick=()=
 $('close-menu').onclick=()=>{const previous=openedPanel;openMenu(null);document.querySelector('[data-panel="'+previous+'"]').focus();};
 $('open-colors').onclick=()=>openMenu(openedPanel==='colors'?null:'colors');
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&openedPanel)$('close-menu').click();});
+
+let sharedConnection=null;
+async function refreshConnection(){if(!token)return;const credential=token;
+ try{const result=await api('/api/session/connection');if(token!==credential)return;sharedConnection=result;$('shared-state').textContent=sharedConnection.page?'함께 보는 페이지: '+sharedConnection.page.title:'함께 볼 페이지를 선택해주세요.';}
+ catch(e){if(token!==credential)return;$('shared-state').textContent='연결을 확인할 수 없어요. 만료되었다면 다시 연결해주세요.';sharedConnection=null;}}
+$('share-page').onclick=()=>busy($('share-page'),async()=>{if(!currentPage||!await leavePage())return;await refreshConnection();if(!sharedConnection)return;await api('/api/session/connection','PUT',{pageId:currentPage.id,revision:sharedConnection.revision});await refreshConnection();});
+$('open-shared').onclick=()=>busy($('open-shared'),async()=>{await refreshConnection();if(sharedConnection?.page&&await leavePage()){library=await api('/api/session/library');await openPage(sharedConnection.page.id);}});
+$('invite-device').onclick=()=>busy($('invite-device'),async()=>{const invite=await api('/api/session/invitations','POST',{});$('pair-code').textContent=invite.code+' · '+new Date(invite.joinExpiresAt).toLocaleTimeString()+'까지';});
+function receivePairingLink(){const joinFragment=/^#join=([a-f0-9]{24})$/.exec(location.hash);
+if(joinFragment){$('code').value=joinFragment[1];history.replaceState(null,'',location.pathname);$('connection').hidden=false;status('QR 연결 코드를 확인하고 여행에 연결하기를 눌러주세요.');}}
+window.addEventListener('hashchange',receivePairingLink);receivePairingLink();
+setInterval(()=>{if(!document.hidden)refreshConnection();},5000);refreshConnection();

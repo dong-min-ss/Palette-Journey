@@ -22,6 +22,8 @@ export class AccountStore {
       CREATE TABLE IF NOT EXISTS participants (
         token_hash TEXT PRIMARY KEY, session_id TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS invitations (code_hash TEXT PRIMARY KEY, session_id TEXT NOT NULL, issuer TEXT NOT NULL, expires INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS session_focus (session_id TEXT PRIMARY KEY, page_id TEXT, revision INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS artworks (
         owner_hash TEXT PRIMARY KEY, regions TEXT NOT NULL, revision INTEGER NOT NULL
       );`);
@@ -72,8 +74,9 @@ export class AccountStore {
     if (typeof code !== 'string' || !/^[a-f0-9]{24}$/.test(code)) throw new Error('INVALID_SESSION');
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      const session = this.db.prepare('SELECT * FROM sessions WHERE code_hash = ?')
-        .get(createHash('sha256').update(code).digest('hex'));
+      const hash=createHash('sha256').update(code).digest('hex');
+      let session = this.db.prepare('SELECT * FROM sessions WHERE code_hash = ?').get(hash);
+      if(!session){const invite=this.db.prepare('SELECT * FROM invitations WHERE code_hash = ?').get(hash);if(invite){session=this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(invite.session_id);if(session)session.join_expires=invite.expires;}}
       if (!session || session.revoked || session.expires <= this.now()) throw new Error('INVALID_SESSION');
       const existing = this.db.prepare('SELECT session_id FROM participants WHERE token_hash = ?').get(key);
       if (existing && existing.session_id !== session.id) throw new Error('PARTICIPANT_IN_USE');
@@ -89,6 +92,17 @@ export class AccountStore {
       WHERE p.token_hash = ?`).get(accountKey(token));
     if (!session || session.revoked || session.expires <= this.now()) throw new Error('UNAUTHORIZED');
     return session.owner_hash;
+  }
+  participantSession(token) {
+    this.participantOwner(token);
+    return this.db.prepare('SELECT s.* FROM sessions s JOIN participants p ON s.id=p.session_id WHERE p.token_hash=?').get(accountKey(token));
+  }
+  invite(token) {
+    const session=this.participantSession(token),code=randomBytes(12).toString('hex');
+    const joinExpiresAt=Math.min(this.now()+300000,session.expires);
+    this.db.prepare('DELETE FROM invitations WHERE issuer=?').run(accountKey(token));
+    this.db.prepare('INSERT INTO invitations VALUES (?,?,?,?)').run(createHash('sha256').update(code).digest('hex'),session.id,accountKey(token),joinExpiresAt);
+    return {code,joinExpiresAt,expiresAt:session.expires,serverNow:this.now()};
   }
   sessionPalette(token) { return this.getByKey(this.participantOwner(token)); }
   artwork(token) {

@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private TextView currentQuestion, conversationHistory, conversationState;
     private Button skipConversation, endConversation;
     private final List<VoiceArchive.Entry> recordedEntries=new ArrayList<>();
-    private Button saveRecording,openRecordings;
+    private Button saveRecording,openRecordings,webConnection;
     private boolean recordingSaved,foreground,pendingRecordStart;
     private void clearRecordedDrafts() {
         for(VoiceArchive.Entry entry:recordedEntries)if(entry.audio!=null)entry.audio.delete();
@@ -96,6 +96,7 @@ public class MainActivity extends Activity {
         cancelAnswer.setEnabled(answer.busy());
         confirmAnswer.setEnabled(conversation.active() && answer.canUseAnswer());
         if(saveRecording!=null)saveRecording.setEnabled(!conversation.active()&&!recordingSaved&&!answer.busy()&&!speechBusy&&recordedEntries.stream().anyMatch(entry->!entry.skipped));
+        if(webConnection!=null)webConnection.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(openRecordings!=null)openRecordings.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
     }
     private void playSpeechQuestion() {
@@ -219,6 +220,7 @@ public class MainActivity extends Activity {
                 answerStatus.setText("이 기기에 답변 원음과 질문 문장을 저장했어요. 질문 음성은 재생할 때 다시 읽어요.");refreshAnswerButtons();
             }catch(Exception error){answerStatus.setText("녹음을 저장하지 못했어요. 저장 공간과 녹음 상태를 확인하고 다시 시도해주세요.");}
         });
+        webConnection=new Button(this);webConnection.setText("웹·휴대폰 연결");root.addView(webConnection);webConnection.setOnClickListener(v->startActivity(new Intent(this,VehicleConnectionActivity.class)));
         openRecordings.setOnClickListener(v->{if(openRecordings.isEnabled())startActivity(new Intent(this,RecordingsActivity.class));});
         renderConversation();
         answerStatus.setText("녹음 안내를 확인해주세요. 저장 전에는 화면을 나가면 녹음이 삭제돼요.");
