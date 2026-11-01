@@ -179,3 +179,12 @@
 - gradlew.bat :app:assembleDebug :app:testDebugUnitTest 성공. 최종 APK 설치 성공. TTS_SERVICE granted=true, SDK 초기화 성공 및 화면 버튼 클릭에 따른 onReady/onStart/onDone을 최종 빌드에서 확인했다. 크래시 없음. evidence/pleos-tts-complete.png 기록.
 - connectedDebugAndroidTest 시도는 테스트 프로세스에서 SDK 초기화 응답이 지연되어 중단했다. 통과로 기록하지 않는다. 해당 실험 테스트는 제거하고 일반 앱 실행의 실제 화면 조작과 로그로 검증했다. 자동 UI 실행 환경의 원인은 미확정이다.
 - 이번 범위 1 SDK 연결/2 질문 재생은 완료. 호스트 스피커 음질 청취·측정, STT 답변 인식, 자유 대화/후속 질문, 음원 파일 접근·웹 저장 연결은 후속.
+
+## 2026-11-01 — 질문 후 답변 음성 인식
+- 공식 Pleos SpeechToText 3.3.1/ON_DEVICE/Locale.KOREA/STT_SERVICE 연결. 보호자 체크 및 시작 후 서비스 준비 → 질문 재생 → TTS 완료 후 request()로 최대30초 듣는다. 재시도·취소·무응답·오류 안내와 화면 이탈 해제 구현.
+- 답변 원문은 화면에만 표시하며 앱 서버/일기/앱 자체 로그에 저장하지 않는다. 기존 실차/릴리스 잠금 유지. 취소된 질문의 늦은 완료 콜백이 새 마이크를 열지 않도록 TTS/STT 세대 검사 적용.
+- gradlew.bat :app:assembleDebug :app:testDebugUnitTest 성공. AnswerTurn 상태 검증 5개+기존 1개 총6개 통과. 질문 완료 전 인식 금지/취소와 지연 결과 무시/빈 결과/중간 결과/재시도 검증. 최종 APK 설치 성공. STT_SERVICE/TTS_SERVICE granted=true.
+- 사용자 허용 후 에뮬레이터 Host Microphone Access를 켰다. 사용자가 직접 시험 버튼을 눌러 발화했고 “말한 그대로 텍스트로 나온다”고 확인했다. SDK 로그에서도 연결→질문 완료 뒤 마이크 요청→시작→중간 결과 확인.
+- 해당 엔진은 이번 시험에서 최종 completed 플래그 없이 종료했다. 1초 대기 후 중간 텍스트를 보존하고 ‘들은 내용이 맞아요’로 명시 확인하게 보완했다. SDK 확정 결과와 사용자 확인을 구분하며 단위 검증 후 최종 APK로 갱신했다.
+- 자동 화면 클릭은 화면 밖에 걸친 에뮬레이터 창의 좌표 전달 문제로 실패하여 사용자 직접 시험으로 검증했다. 원문 음원은 수집/커밋하지 않았다.
+- 다음: 답변에 맞는 실제 대화 API/후속 질문 및 질문·답변의 웹 일기 연결. 이번 단계는 화면 인식 시험이며 대화/음원 저장 연결은 아직 없다.

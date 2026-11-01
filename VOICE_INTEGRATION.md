@@ -29,3 +29,8 @@
 
 ## 2026-11-01 — 차량 TTS 첫 검증 완료
 공식 Maven의 TextToSpeech 3.3.1을 앱에 직접 연결하고 ON_DEVICE/Locale.KOREA로 한 문장을 재생했다. 현재 설치된 Pleos v2.1.0/API34 에뮬레이터에서 초기화 성공, TTS_SERVICE granted=true, onReady/onStart/onDone을 확인했다. 이 결과는 해당 조합의 질문 재생 검증이며 STT·자유 대화·다른 SDK 모듈까지 호환된다는 의미는 아니다. 합성 음원 파일/PCM 반환과 웹 녹음 혼합은 여전히 미확인이다. 기기 출력은 SDK 완료 이벤트 기준이며 호스트 스피커의 실제 음질을 청취·측정하지는 않았다.
+
+## 2026-11-01 — STT 구현
+[SpeechToText 결과 이벤트](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/SpeechToText/result-listeners)와 [시작/중지 API](https://document.pleos.ai/en/docs/pleos-only/connect-sdk-pleos/SpeechToText/start-and-stop)를 확인하고 공식 3.3.1 AAR의 실제 메서드 시그니처와 대조했다. 질문 완료 후 request(), 중간/최종 결과, 종료·오류·타임아웃과 정리를 구현했다. 원본 음원 접근·맞춤 후속 질문·웹 녹음 저장은 여전히 별도 과제다.
+
+실마이크 인식은 사용자 직접 시험으로 화면 텍스트 일치를 확인했다. 해당 SDK/이미지 조합은 중간 결과 후 최종 플래그 없이 끝날 수 있어 1초 유예 후 사용자 확인 상태로 전환한다. SDK 확정 결과인 것처럼 처리하지 않는다.
