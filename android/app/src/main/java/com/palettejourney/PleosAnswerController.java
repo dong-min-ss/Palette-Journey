@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import java.util.Locale;
+import java.io.File;
 import ai.pleos.playground.stt.SpeechToText;
 import ai.pleos.playground.stt.constant.Mode;
 import ai.pleos.playground.stt.constant.ErrorType;
@@ -20,16 +21,20 @@ final class PleosAnswerController {
     private final AnswerTurn turn = new AnswerTurn();
     private SpeechToText recognizer;
     private ResultListener listener;
-    private int epoch;
+    private volatile int epoch;
     private Runnable timeout;
+    private AnswerAudioCapture capture;
+    private String lastStatus="";
 
     PleosAnswerController(Context context, Observer observer) { this.context=context.getApplicationContext(); this.observer=observer; }
-    boolean busy() { return turn.busy(); }
+    boolean busy() { return turn.busy() || (capture!=null&&!capture.finished); }
     boolean canConfirm() { return turn.state==AnswerTurn.State.REVIEW; }
-    boolean canUseAnswer() { return turn.state==AnswerTurn.State.REVIEW || turn.state==AnswerTurn.State.RESULT; }
+    boolean canUseAnswer() { return (turn.state==AnswerTurn.State.REVIEW || turn.state==AnswerTurn.State.RESULT) && capture!=null && capture.ready(); }
+    File takeRecording() { if(capture==null||!capture.ready())return null;File file=capture.file;capture=null;return file; }
     String result() { return turn.state==AnswerTurn.State.RESULT ? turn.text : ""; }
-    void confirm() { if (turn.confirm() || turn.state==AnswerTurn.State.RESULT) show("답변 확인 완료 · 이번 시험에서는 저장하지 않아요"); }
+    void confirm() { if (turn.confirm() || turn.state==AnswerTurn.State.RESULT) show("답변 확인 완료 · 대화 종료 후 저장할 수 있어요"); }
     private void show(String status) {
+        lastStatus=status;
         // Log operational events, never the child's recognized words.
         Log.i("PaletteStt", status);
         observer.changed(status, turn.text, turn.busy());
@@ -44,7 +49,7 @@ final class PleosAnswerController {
     }
     void begin(Runnable playQuestion) {
         if (busy()) return;
-        closeResources(); turn.begin(); final int generation=epoch;
+        closeResources(); discardRecording(); turn.begin(); final int generation=epoch;
         show("음성 인식 연결 중 · 아직 마이크를 열지 않았어요");
         deadline(generation,20000,"음성 인식 연결이 지연돼요. 다시 시도해주세요.");
         try {
@@ -88,15 +93,34 @@ final class PleosAnswerController {
     void questionFinished() {
         if (!turn.questionFinished() || recognizer==null) return;
         show("● 지금 답해주세요 · 마이크 시작 요청 중");
-        deadline(epoch,30000,"답변 시간이 끝났어요. 다시 말하기로 시도해주세요.");
-        try { recognizer.request(); }
-        catch (RuntimeException e) { fail("마이크를 시작하지 못했어요. 기기 마이크 설정을 확인해주세요."); }
+        deadline(epoch,35000,"답변 시간이 끝났어요. 다시 말하기로 시도해주세요.");
+        final int generation=epoch;
+        final SpeechToText current=recognizer;
+        try {
+            File dir=new File(context.getCacheDir(),"voice-drafts");
+            if(!dir.isDirectory()&&!dir.mkdirs())throw new IllegalStateException("AUDIO_DIRECTORY");
+            final AnswerAudioCapture recording=new AnswerAudioCapture(File.createTempFile("answer-",".wav",dir));
+            capture=recording;
+            recording.start(new AnswerAudioCapture.Listener() {
+                public void pcm(byte[] bytes) { if(generation==epoch)current.sendAudio(bytes); }
+                public void ended(boolean failed) { main.post(() -> {
+                    if(capture!=recording)return;
+                    if(failed || !recording.ready()) { turn.state=AnswerTurn.State.ERROR;closeResources();show("답변 녹음이 없거나 실패했어요 · 다시 말해주세요"); return; }
+                    if(generation==epoch && turn.state==AnswerTurn.State.LISTENING) {
+                        try { current.completeAudioSend(); }catch(RuntimeException error){fail("음성 입력 완료 실패 · 다시 시도해주세요");return;}
+                    }
+                    show(lastStatus);
+                }); }
+            });
+        }catch(Exception e) { fail("마이크 녹음을 시작하지 못했어요. 권한과 저장 공간을 확인해주세요."); }
     }
     void fail(String message) { if (!busy()) return; turn.fail(); closeResources(); show(message); }
-    void cancel() { turn.cancel(); closeResources(); show("답변 인식을 취소했어요 · 마이크 종료"); }
-    void dispose() { turn.cancel(); turn.text=""; closeResources(); }
+    void cancel() { turn.cancel(); closeResources(); discardRecording(); show("답변 인식을 취소했어요 · 미확인 녹음 삭제"); }
+    void dispose() { turn.cancel(); turn.text=""; closeResources(); discardRecording(); }
+    private void discardRecording() { if(capture!=null){capture.discard();capture=null;} }
     private void closeResources() {
         epoch++;
+        if(capture!=null)capture.stop();
         if (timeout!=null) main.removeCallbacks(timeout); timeout=null;
         SpeechToText previous=recognizer; recognizer=null;
         if (previous!=null) {

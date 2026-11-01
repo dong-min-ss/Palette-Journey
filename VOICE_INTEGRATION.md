@@ -38,3 +38,9 @@
 ## 2026-11-01 — LLM SDK 종료 확인과 후속 질문 시연
 [공식 Playground 변경 안내](https://document.pleos.ai/en/docs/pleos-only/release-note/playground-release-note)는 LLM SDK 종료와 Gleo Interface 사용을 안내한다. [Gleo Interface 개념](https://document.pleos.ai/en/docs/pleos-only/app-integration-guide/guide/core-concepts)은 앱이 제공하는 기능과 스키마를 통해 Gleo가 호출하고 콜백을 받는 방식이다. 앱에서 임의의 프롬프트를 보내 자유 대화를 생성하는 API로 해석하지 않는다. [스키마 전달 안내](https://document.pleos.ai/en/docs/pleos-only/app-integration-guide/guide/deliver-schema)에는 스키마 검토/승인 절차가 있다. 이번 작업에서는 등록·제출을 하지 않았다.
 따라서 현재 구현은 Gleo 생성형 대화가 아닌 준비된 질문 분기다. 확인된 답변의 음식/장소/활동 단어로 중립적인 질문을 고르고, 같은 질문을 반복하지 않으며 최대 네 질문만 진행한다. 방문/음식 섭취를 지어내지 않는다. 음원·대화 기록은 웹/서버에 연결하지 않았다. 실제 글레오 자유 대화 지원과 앱 기능/스키마 범위는 별도 확인이 필요하다.
+
+## 2026-11-01 — 답변 원음과 질문 문장 보관
+[공식 PCM 입력 API](https://document.pleos.ai/en/api-reference/connect-sdk-pleos/SpeechToText/sending-audio-data)에 따라 ON_DEVICE 모드의 sendAudio/completeAudioSend를 사용한다. 앱이 단독으로 AudioRecord를 소유하고 같은 PCM을 WAV 기록과 인식에 전달하므로 두 앱 마이크의 동시 수집에 의존하지 않는다.
+현재 확인한 TTS 3.3.1 공개 SDK에는 질문 원음 파일을 반환하는 메서드가 확인되지 않았다. 이를 지원 불가로 단정하거나 비공개 API로 우회하지 않고, 원문 질문 문장과 답변 WAV를 보관한다. 재생 시 질문은 같은 Pleos TTS로 재합성하고 답변만 원음을 재생한다. 제품 화면과 manifest.properties의 questionAudio=tts-reconstructed/answerAudio=microphone-original로 출처를 구분한다. 실제 혼합 대화 원음·웹 일기 연결은 미완료다.
+
+검증 결과: 사용자가 새 녹음 방식에서 실제 발화 후 기기 저장·다시 듣기를 직접 수행하여 답변 원음이 들림을 확인했다. 합성 PCM 저장/재개방/MediaPlayer 디코딩/삭제의 기기 계측 시험도 통과했다. 질문 원음과 웹 동기화가 완료됐다는 의미는 아니다.
