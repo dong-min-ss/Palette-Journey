@@ -112,7 +112,7 @@ async function openPage(id){
   $('child').value=diary.childId;$('trip').value=diary.tripId;renderLibrary();$('diary').value=diary.id;renderLibrary();$('page').value=page.id;
   $('page-title').value=page.title;$('page-text').value=page.text;
   $('page-title').disabled=false;$('page-text').disabled=false;$('save').disabled=false;
-  document.querySelector('.drawing-surface').classList.toggle('blank',page.template==='blank');applyArtwork(page);
+  applyArtwork(page);
   voiceDiary.load(page.id);
   localStorage.setItem('pj-last-page-'+library.familyId,page.id);
   $('recover-draft').hidden=true;const draft=localStorage.getItem('pj-draft-'+page.id);
@@ -157,7 +157,7 @@ for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{even
 });};
 $('page-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
   if(!await leavePage())return;if(!$('diary').value){status('먼저 그림일기를 추가해주세요.');return;}
-  const page=await api('/api/session/diaries/'+$('diary').value+'/pages','POST',{title:$('new-page-title').value,template:$('new-template').value});
+  const page=await api('/api/session/diaries/'+$('diary').value+'/pages','POST',{title:$('new-page-title').value,template:'blank'});
   library=await api('/api/session/library');await openPage(page.id);event.target.reset();status('새 페이지를 만들었어요.');
 });};
 $('page-title').oninput=changed;$('page-text').oninput=changed;

@@ -35,7 +35,7 @@ export class DiaryStore {
       this.db.prepare('INSERT INTO diaries VALUES (?,?,?,?,?)').run(diary,trip,child,'첫 여행 그림일기',new Date(this.accounts.now()).toISOString());
       const original=this.accounts.artwork(token);
       this.db.prepare('INSERT INTO pages VALUES (?,?,?,?,?)').run(randomUUID(),diary,0,
-        JSON.stringify({ title:'첫 페이지',text:'',template:'landscape',strokes:original.strokes,legacyRegions:original.legacyRegions }),0);
+        JSON.stringify({ title:'첫 페이지',text:'',template:'blank',strokes:original.strokes,legacyRegions:original.legacyRegions }),0);
       this.db.exec('COMMIT'); return id;
     } catch(error) {this.db.exec('ROLLBACK');throw error;}
   }

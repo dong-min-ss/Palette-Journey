@@ -24,7 +24,7 @@
     <aside id="menu-drawer" aria-label="스케치북 설정" hidden><button id="close-menu" class="secondary" aria-label="메뉴 닫기">닫기 ×</button>
       <section id="panel-book" class="menu-panel" aria-labelledby="heading-book" hidden><h2 id="heading-book">나의 여행책</h2>    <section class="card library"><div class="book-selectors"><label>어린이 별명<select id="child"></select></label><label>여행<select id="trip"></select></label><label>그림일기<select id="diary"></select></label><label>페이지<select id="page"></select></label></div>
     <details><summary>새로운 기록 만들기</summary><div class="book-selectors"><form id="child-form"><label for="child-name">어린이 별명</label><input id="child-name" maxlength="40" required placeholder="실명 대신 별명"><button type="submit" class="secondary">어린이 추가</button></form><form id="trip-form"><label for="trip-title">여행 이름</label><input id="trip-title" maxlength="80" required><button type="submit" class="secondary">여행 추가</button></form><form id="diary-form"><label for="diary-title">그림일기 이름</label><input id="diary-title" maxlength="80" required><button type="submit" class="secondary">그림일기 추가</button></form></div></details>
-    <form id="page-form" class="new-page"><label for="new-page-title">새 페이지</label><input id="new-page-title" maxlength="80" required placeholder="페이지 이름"><select id="new-template" aria-label="새 페이지 도안"><option value="blank">빈 페이지</option><option value="landscape">여행길 도안</option></select><button type="submit" class="secondary">페이지 추가</button></form></section>
+    <form id="page-form" class="new-page"><label for="new-page-title">새 페이지</label><input id="new-page-title" maxlength="80" required placeholder="페이지 이름"><button type="submit" class="secondary">페이지 추가</button></form></section>
     <div class="actions"><button id="reload" class="secondary">저장된 페이지 불러오기</button><button id="recover-draft" class="secondary" hidden>임시 기록으로 이어쓰기</button></div><button id="disconnect" class="secondary">연결 나가기</button></section>
       <section id="panel-story" class="menu-panel" aria-labelledby="heading-story" hidden><h2 id="heading-story">제목과 이야기</h2>    <label for="page-title">페이지 제목</label><input id="page-title" maxlength="80" placeholder="오늘 기억하고 싶은 순간">
     <label for="page-text">오늘의 이야기 <span class="hint">그림만 남겨도 괜찮아요.</span></label><textarea id="page-text" maxlength="2000" rows="4" placeholder="오늘 가장 기억나는 일은 무엇인가요?"></textarea>
@@ -48,13 +48,7 @@
         <div class="voice-actions"><button id="voice-save" disabled>이 페이지에 녹음 저장</button><button id="voice-download" class="secondary" disabled>저장 전 녹음 내려받기</button><button id="voice-discard" class="secondary" disabled>저장 전 녹음 버리기</button><button id="voice-play" class="secondary" disabled>저장된 대화 듣기</button><button id="voice-delete" class="secondary" disabled>저장된 녹음 삭제</button></div>
       </section>
     </aside>
-    <section class="sketch-workspace" aria-label="스케치북">    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="펜과 손가락으로 색칠하는 여행길 풍경"></canvas><svg viewBox="0 0 600 400" aria-hidden="true">
-      <rect x="5" y="5" width="590" height="390" rx="24"/>
-      <circle cx="465" cy="90" r="43"/>
-      <path d="M5 260 L155 90 L285 240 L370 150 L595 285"/>
-      <path d="M5 295 Q150 225 300 285 T595 270"/>
-      <path d="M285 280 L320 280 Q295 325 410 395 M190 395 Q320 320 285 280"/>
-    </svg><div id="sticker-layer"></div></div></div>
+    <section class="sketch-workspace" aria-label="스케치북">    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="자유롭게 그리는 그림일기"></canvas><div id="sticker-layer"></div></div></div>
 </section>
     <div class="tool-dock">    <div class="drawing-tools"><button id="brush" aria-pressed="true">브러시</button><button id="eraser" class="secondary" aria-pressed="false">지우개</button><button id="move-sticker" class="secondary" aria-pressed="false">스티커 이동</button><button id="undo" class="secondary">실행 취소</button><button id="redo" class="secondary">다시 실행</button><label for="size">굵기 <output id="size-label">12</output><input id="size" type="range" min="2" max="48" value="12"></label></div>
 <button id="open-colors" class="secondary" aria-label="색상 메뉴 열기"><span id="current-color" aria-hidden="true"></span>색상</button></div>
