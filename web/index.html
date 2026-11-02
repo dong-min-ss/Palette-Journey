@@ -41,11 +41,12 @@
 </section>
       <section id="panel-voice" class="menu-panel" aria-labelledby="heading-voice" hidden>
         <h2 id="heading-voice">말로 남기는 여행</h2><p class="badge">준비된 질문 시연 · 실제 AI 미연동</p>
-        <p>보호자가 질문을 읽고 아이가 답해요. 마이크에 들어오는 질문과 답변을 함께 녹음해요.</p>
+        <details><summary>웹에서 새 음성 일기 녹음하기</summary><p>보호자가 질문을 읽고 아이가 답해요. 마이크에 들어오는 질문과 답변을 함께 녹음해요.</p>
         <p class="hint">최대 2분 · 이 서버에 가족 비공개로 저장해요. 외부 AI로 전송하거나 자동 문자 변환하지 않아요. 저장 전 녹음은 이 화면에만 남아요.</p>
         <label class="voice-consent"><input id="voice-consent" type="checkbox"> 보호자가 녹음·비공개 보관 안내를 확인했고 함께 진행해요.</label>
         <div class="voice-prompt"><span class="hint">보호자가 읽어주세요</span><p id="voice-question">오늘 어떤 일이 있었어?</p><span id="voice-clock">0 / 120초</span></div>
         <div class="voice-actions"><button id="voice-start">보호자가 녹음 시작</button><button id="voice-next" class="secondary" disabled>건너뛰고 다음 질문</button><button id="voice-pause" class="secondary" disabled>잠시 쉬기</button><button id="voice-stop" class="secondary" disabled>녹음 종료</button></div>
+        </details>
         <p id="voice-status" role="status" aria-live="polite">페이지를 선택해주세요.</p><audio id="voice-player" controls hidden></audio><ol id="voice-cues"></ol>
         <div class="voice-actions"><button id="voice-save" disabled>이 페이지에 녹음 저장</button><button id="voice-download" class="secondary" disabled>저장 전 녹음 내려받기</button><button id="voice-discard" class="secondary" disabled>저장 전 녹음 버리기</button><button id="voice-play" class="secondary" disabled>저장된 대화 듣기</button><button id="voice-delete" class="secondary" disabled>저장된 녹음 삭제</button></div>
       </section>

@@ -13,7 +13,7 @@ async function readJson(req) {
   const chunks=[];let length=0;
   for await (const chunk of req) {
     length+=chunk.length;
-    if (length > (req.url?.endsWith('/voice')?2900000:(req.url==='/api/session/artwork'||req.url?.startsWith('/api/session/pages/'))?524288:4096)) throw new Error('BODY_TOO_LARGE');
+    if (length > (req.url?.endsWith('/voice/vehicle')?5300000:req.url?.endsWith('/voice')?2900000:(req.url==='/api/session/artwork'||req.url?.startsWith('/api/session/pages/'))?524288:4096)) throw new Error('BODY_TOO_LARGE');
     chunks.push(chunk);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('INVALID_JSON'); }
@@ -43,7 +43,8 @@ export function createApp(store) {
       const token = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization ?? '')?.[1];
       accountKey(token);
       let result;
-      if(/^\/api\/session\/pages\/[^/]+\/voice(?:\/audio)?$/.test(req.url)){
+      if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+\/voice\/vehicle$/.test(req.url)){result=voice.write(token,req.url.split('/')[4],await readJson(req),false,true);}
+      else if(/^\/api\/session\/pages\/[^/]+\/voice(?:\/audio)?$/.test(req.url)){
         const id=req.url.split('/')[4];
         if(req.method==='GET'&&req.url.endsWith('/audio')){const data=voice.audio(token,id);res.setHeader('Content-Type',data.mime);res.end(data.audio);return;}
         if(req.method==='GET')result=voice.get(token,id);

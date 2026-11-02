@@ -23,12 +23,12 @@ export function createVoiceDiary({getPage,getToken,api}) {
     $('voice-indicator').hidden=!recording;$('voice-indicator').textContent=pending?'마이크 연결 중':recorder?.state==='paused'?'녹음 일시정지':'● 녹음 중';
     $('voice-clock').textContent=`${Math.floor(duration()/1000)} / 120초`;
   }
-  function showCues(value){$('voice-cues').replaceChildren(...value.map(c=>{const li=document.createElement('li');li.textContent=`${Math.floor(c.at/1000)}초 · ${QUESTIONS[c.question]}`;return li;}));}
+  function showCues(value){$('voice-cues').replaceChildren(...value.map(c=>{const li=document.createElement('li');li.textContent=`${Math.floor(c.at/1000)}초 · ${c.questionText??QUESTIONS[c.question]}${c.questionText?(c.skipped?" · 건너뜀":" · 답변: "+c.answerText):""}`;return li;}));}
   async function load(id){
     const epoch=++generation;page=id;draft=null;metadata={revision:0,recording:null};question=0;elapsed=0;releaseURL();$('voice-player').hidden=true;showCues([]);loading=!!id;$('voice-consent').checked=false;render();
     if(!id){say('페이지를 선택해주세요.');return;}
     say('음성 기록을 확인하고 있어요.');
-    try {const result=await api(`/api/session/pages/${id}/voice`);if(epoch!==generation)return;metadata=result;showCues(result.recording?.cues??[]);say(result.recording?'저장된 대화를 다시 들을 수 있어요.':'아직 음성 기록이 없어요. 보호자와 함께 시작해요.');}
+    try {const result=await api(`/api/session/pages/${id}/voice`);if(epoch!==generation)return;metadata=result;showCues(result.recording?.cues??[]);say(result.recording?(result.recording.mode==='vehicle-answer-original'?'차량에서 올린 답변 원음이에요. 질문은 글로 표시하며 질문 음성은 포함하지 않아요.':'저장된 대화를 다시 들을 수 있어요.'):'아직 음성 기록이 없어요. 보호자와 함께 시작해요.');}
     catch(error){if(epoch!==generation)return;say('음성 기록을 불러오지 못했어요. 메뉴를 다시 열어 재시도해주세요.');}
     finally{if(epoch===generation){loading=false;render();}}
   }
@@ -78,7 +78,7 @@ export function createVoiceDiary({getPage,getToken,api}) {
   $('voice-discard').onclick=()=>{if(!draft||!confirm('저장 전 녹음을 버릴까요?'))return;load(page);};
   $('voice-play').onclick=async()=>{
     if(!metadata.recording||working)return;working=true;render();const epoch=generation;
-    try{const response=await fetch(`/api/session/pages/${page}/voice/audio`,{headers:{Authorization:`Bearer ${getToken()}`}});if(!response.ok)throw new Error();const blob=await response.blob();if(epoch!==generation)return;preview(blob);await $('voice-player').play();say('저장된 대화를 재생해요.');}
+    try{const response=await fetch(`/api/session/pages/${page}/voice/audio`,{headers:{Authorization:`Bearer ${getToken()}`}});if(!response.ok)throw new Error();const blob=await response.blob();if(epoch!==generation)return;preview(blob);await $('voice-player').play();say(metadata.recording.mode==='vehicle-answer-original'?'차량에서 녹음한 답변 원음을 이어서 재생해요. 질문 음성은 포함하지 않아요.':'저장된 대화를 재생해요.');}
     catch{say('재생하지 못했어요. 연결과 재생 버튼을 확인해주세요.');}finally{working=false;render();}
   };
   $('voice-delete').onclick=async()=>{

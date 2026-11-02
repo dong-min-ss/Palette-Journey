@@ -23,6 +23,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".VehicleConnectionActivity" android:exported="false" />
+        <activity android:name=".UploadStoryActivity" android:exported="false" />
         <activity android:name=".RecordingsActivity" android:exported="false" />
     </application>
 

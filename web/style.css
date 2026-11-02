@@ -38,3 +38,5 @@ body:has(#studio:not([hidden])) #status{position:fixed;left:104px;bottom:2px;mar
 
 .side-menu{overflow-y:auto;}
 #pair-code{overflow-wrap:anywhere;}
+
+#voice-cues{overflow-wrap:anywhere;white-space:pre-wrap;}

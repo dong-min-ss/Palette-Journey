@@ -19,7 +19,7 @@ final class VehicleApi {
     static String randomToken(){byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);StringBuilder b=new StringBuilder();for(byte v:bytes)b.append(String.format("%02x",v&255));return b.toString();}
     static JSONObject request(String path,String method,JSONObject body,String token)throws Exception {
         HttpURLConnection connection=(HttpURLConnection)new URL("http://10.0.2.2:3000"+path).openConnection();
-        connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(5000);connection.setReadTimeout(5000);
+        connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(5000);connection.setReadTimeout(15000);
         connection.setRequestMethod(method);connection.setRequestProperty("Authorization","Bearer "+token);
         try{
             if(body!=null){connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");try(java.io.OutputStream out=connection.getOutputStream()){out.write(body.toString().getBytes(StandardCharsets.UTF_8));}}
