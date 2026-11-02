@@ -280,3 +280,9 @@
 - 진단 Activity는 DEBUG+에뮬레이터가 아니면 안내만 표시하고 수신/조작을 시작하지 않는다. 실제 차량 주행용 승인이나 동승자 식별로 간주하지 않는다.
 - 속도/기어 이력은 이번 요구인 실시간 확인에 필수가 아니어서 추가하지 않았다. 향후 수신 누락/변경 순서/화면 종료 전후 분석이 필요할 때 제한된 기록을 추가한다.
 - 검증: gradlew.bat :app:assembleDebug :app:processReleaseMainManifest 성공. 병합 debug에 임시 metadata 존재, release에는 없음 확인. adb install -r 데이터 보존 설치 성공. 실제 D 전환 화면 확인은 사용자 재시험 필요.
+
+## 2026-11-02 — 같은 진단 화면의 속도·기어 갱신 수정
+- 사용자 화면에서 콘솔 D/가속인데 앱 P=4/0 표시 유지 확인. 진단 Activity는 RESUMED였고 반복 get 조회 방식이었다. CarPropertyManager 속도·기어 변경 이벤트 구독으로 교체하고 구독 해제/연결 정리 적용.
+- 화면에 변경 이벤트 수신 횟수·마지막 수신 경과 시간을 표시한다. 저장 이력/좌표 로그는 추가하지 않는다.
+- 기존 새 Car 인스턴스의 단발 조회 테스트만으로 계속 열린 진단 UI의 실시간 갱신을 검증하지 못했던 빈틈을 VehicleSignalsScreenDeviceTest로 보완했다. 실제 Activity의 TextView를 반복 확인하고 공식 Virtual Console D→ACCEL 유지→P 조작에 따른 기어8/속도>1m/s/기어4 표시를 같은 Activity에서 검증했다.
+- assembleDebug 성공. connectedDebugAndroidTest class=com.palettejourney.VehicleSignalsScreenDeviceTest 실제1개 tests=1 failures=0/errors=0 통과. 콘솔 P/속도0 복원. 최종 APK 데이터 보존 설치 성공.

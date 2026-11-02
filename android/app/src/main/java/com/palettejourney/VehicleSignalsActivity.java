@@ -17,7 +17,8 @@ import java.util.concurrent.ExecutorService;
 public class VehicleSignalsActivity extends Activity {
     private final Handler handler=new Handler();
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
-    private FusedLocation location; private Car car; private TextView view;
+    private FusedLocation location; private Car car; private CarPropertyManager properties;
+    private volatile Float vehicleSpeed=null; private volatile Integer vehicleGear=null; private volatile long signalAt=0; private volatile int signalCount=0; private TextView view;
     private volatile boolean active=false;
     private boolean collect=false; private volatile String participant=null; private LocationData latest=null; private long lastSent=0; private String rewardState="GPS 보상 시연 중지됨";
     private String locationState="위치 수신 대기",motionState="차량 상태 수신 대기";
@@ -41,11 +42,22 @@ public class VehicleSignalsActivity extends Activity {
     private void startLocation(){try{location=new FusedLocation(this);if(location.isSupported()){location.initialize();location.registerFusedLocationCallback(listener);location.getLastKnownLocation(listener);}else locationState="FusedLocation 미지원";}catch(Exception e){locationState="위치 초기화 실패: "+e.getClass().getSimpleName();}render();}
     private void stopLocation(){if(location!=null){try{location.unregisterFusedLocationCallback(listener);location.release();}catch(Exception ignored){}location=null;}}
     private void sendReset(){if(participant!=null)try{VehicleApi.request("/api/session/visits/vehicle","POST",new org.json.JSONObject().put("source","pleos-emulator").put("valid",false),participant);}catch(Exception ignored){}}
+    private final CarPropertyManager.CarPropertyEventCallback signalListener=new CarPropertyManager.CarPropertyEventCallback(){
+        public void onChangeEvent(android.car.hardware.CarPropertyValue value){
+            if(!active)return;
+            if(value.getPropertyId()==VehiclePropertyIds.PERF_VEHICLE_SPEED)vehicleSpeed=value.getStatus()==0?(Float)value.getValue():null;
+            if(value.getPropertyId()==VehiclePropertyIds.GEAR_SELECTION)vehicleGear=value.getStatus()==0?(Integer)value.getValue():null;
+            signalAt=android.os.SystemClock.elapsedRealtime();signalCount++;
+        }
+        public void onErrorEvent(int propertyId,int areaId){if(propertyId==VehiclePropertyIds.PERF_VEHICLE_SPEED)vehicleSpeed=null;if(propertyId==VehiclePropertyIds.GEAR_SELECTION)vehicleGear=null;}
+    };
     private final Runnable poll=new Runnable(){public void run(){if(!active)return;
         final boolean sending=collect&&android.os.SystemClock.elapsedRealtime()-lastSent>=5000;
         final LocationData sample=latest;
         if(sending)lastSent=android.os.SystemClock.elapsedRealtime();
-        worker.execute(()->{String value;try{if(car==null)car=Car.createCar(VehicleSignalsActivity.this);CarPropertyManager properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);float speed=properties.getFloatProperty(VehiclePropertyIds.PERF_VEHICLE_SPEED,0);int gear=properties.getIntProperty(VehiclePropertyIds.GEAR_SELECTION,0);value="차량 속도 "+speed+" m/s / 기어 값 "+gear+"\n진단용 읽기 성공 (정차 허용 판정 미적용)";}catch(Exception e){value="속도·기어 조회 실패: "+e.getClass().getSimpleName()+" · 상태 미확인";}if(sending){try{if(participant==null)participant=VehicleApi.load(VehicleSignalsActivity.this);if(participant==null)throw new IllegalStateException();
+        worker.execute(()->{String value;try{if(car==null){car=Car.createCar(VehicleSignalsActivity.this);properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);
+            if(!properties.registerCallback(signalListener,VehiclePropertyIds.PERF_VEHICLE_SPEED,CarPropertyManager.SENSOR_RATE_ONCHANGE)||!properties.registerCallback(signalListener,VehiclePropertyIds.GEAR_SELECTION,CarPropertyManager.SENSOR_RATE_ONCHANGE))throw new IllegalStateException("SIGNAL_SUBSCRIPTION_FAILED");}
+            value="차량 속도 "+(vehicleSpeed==null?"수신 대기":vehicleSpeed)+" m/s / 기어 값 "+(vehicleGear==null?"수신 대기":vehicleGear)+"\n변경 이벤트 "+signalCount+"회 · 마지막 수신 "+(signalAt==0?"없음":(android.os.SystemClock.elapsedRealtime()-signalAt)/1000+"초 전")+"\n정차 허용 판정 미적용";}catch(Exception e){value="속도·기어 조회 실패: "+e.getClass().getSimpleName()+" · 상태 미확인";}if(sending){try{if(participant==null)participant=VehicleApi.load(VehicleSignalsActivity.this);if(participant==null)throw new IllegalStateException();
             org.json.JSONObject body=new org.json.JSONObject().put("source","pleos-emulator").put("valid",sample!=null);
             if(sample!=null)body.put("latitude",sample.getLatitude()).put("longitude",sample.getLongitude()).put("measuredAt",sample.getTimestampMillis());
             org.json.JSONObject result=VehicleApi.request("/api/session/visits/vehicle","POST",body,participant);
@@ -53,6 +65,6 @@ public class VehicleSignalsActivity extends Activity {
             handler.post(()->{if(active){rewardState=message;render();}});
         }catch(Exception e){handler.post(()->{if(active){rewardState="전송 실패 · 가족 연결/서버/시연 설정을 확인해주세요.";render();}});}}
         String result=value;handler.post(()->{if(active){motionState=result;render();handler.postDelayed(this,1000);}});});}};
-    @Override public void onStop(){active=false;handler.removeCallbacks(poll);stopLocation();latest=null;collect=false;worker.execute(()->{sendReset();if(car!=null){car.disconnect();car=null;}});super.onStop();}
+    @Override public void onStop(){active=false;handler.removeCallbacks(poll);stopLocation();latest=null;collect=false;worker.execute(()->{sendReset();if(properties!=null){properties.unregisterCallback(signalListener);properties=null;}if(car!=null){car.disconnect();car=null;}vehicleSpeed=null;vehicleGear=null;});super.onStop();}
     @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);worker.shutdown();super.onDestroy();}
 }
