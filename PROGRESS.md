@@ -286,3 +286,8 @@
 - 화면에 변경 이벤트 수신 횟수·마지막 수신 경과 시간을 표시한다. 저장 이력/좌표 로그는 추가하지 않는다.
 - 기존 새 Car 인스턴스의 단발 조회 테스트만으로 계속 열린 진단 UI의 실시간 갱신을 검증하지 못했던 빈틈을 VehicleSignalsScreenDeviceTest로 보완했다. 실제 Activity의 TextView를 반복 확인하고 공식 Virtual Console D→ACCEL 유지→P 조작에 따른 기어8/속도>1m/s/기어4 표시를 같은 Activity에서 검증했다.
 - assembleDebug 성공. connectedDebugAndroidTest class=com.palettejourney.VehicleSignalsScreenDeviceTest 실제1개 tests=1 failures=0/errors=0 통과. 콘솔 P/속도0 복원. 최종 APK 데이터 보존 설치 성공.
+
+## 2026-11-02 — 실제 앱 진입 경로의 주행 가림 예외 보완
+- 진단 화면만 debug DO 예외였으나 실제 사용은 MainActivity→VehicleConnectionActivity→VehicleSignalsActivity가 같은 Task에 누적된다. debug 전용 Manifest에서 첫 화면/가족 연결도 임시 예외에 포함해 실제 진입 경로를 보완했다. release에는 포함하지 않는다.
+- 기기 화면 테스트를 직접 진단 실행에서 실제 버튼 순서로 수정. 가족 연결 초기 조회 중 버튼 비활성 대기 추가. 조작 타이밍/준비 지연에 따른 실패는 재시험했다.
+- 최종 실제 경로 테스트1개 성공. D+가속 시 UiAutomation 화면 캡처를 앱 내부 cache에 저장 후 확인: 좌측 D/주행 속도와 우측 가림 없는 진단의 기어8/변경이벤트166회/최근수신0초 확인. evidence/diagnostic-drive.png. P/속도0 복원. 최종 APK 데이터 보존 설치 성공.

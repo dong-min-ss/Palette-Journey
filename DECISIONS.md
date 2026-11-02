@@ -156,3 +156,7 @@
 ## 2026-11-02 — 임시 진단 표시 예외
 - 사용자 요청으로 개발용 에뮬레이터 VehicleSignalsActivity만 debug Manifest의 distractionOptimized=true를 사용해 가림 없이 실시간 상태를 보도록 한다. 이 선언은 배포/실차 주행용 적합성 선언이 아니며 release에는 포함하지 않는다. debug 실기기에서도 Activity 수신/조작은 차단한다.
 - 공식 메커니즘: https://source.android.com/docs/automotive/driver_distraction/guidelines . 원복은 android/app/src/debug/AndroidManifest.xml의 해당 metadata 제거로 한다. 플랫폼 전체의 제한은 변경하지 않는다.
+
+## 2026-11-02 — 개발용 예외의 실제 Task 경로 반영
+- Pleos 런처에서 실제 버튼 경로와 단독 진단 실행이 달라지는 점을 고려해 debug의 MainActivity/VehicleConnectionActivity/VehicleSignalsActivity 모두 임시 DO 예외를 둔다. 이전 진단 단독 예외 결정을 보완한다. release Manifest는 그대로 유지한다.
+- 실제 버튼 경로로 진단 진입 후 D/가속/P를 시험하고 전체 기기 화면을 캡처해 가림 없음까지 검증한다.
