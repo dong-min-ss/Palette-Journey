@@ -59,6 +59,7 @@ export function createApp(store,options={}) {
       else if(req.method==='PUT'&&req.url==='/api/session/connection')result=connection.set(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/invitations')result=store.invite(token);
       else if(req.method==='GET'&&req.url==='/api/session/visits')result=visits.state(token);
+      else if(req.method==='POST'&&req.url==='/api/session/visits/vehicle')result=visits.vehicle(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/visits/mock')result=visits.sample(token,await readJson(req));
       else if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickerAccess===true);
       else if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);

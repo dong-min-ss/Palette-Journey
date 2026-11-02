@@ -1,3 +1,4 @@
+import { accountKey } from './store.mjs';
 import { REGIONAL_COLORS, STICKERS } from '../core/catalog.mjs';
 import { collectRegionColor } from '../core/palette.mjs';
 
@@ -13,17 +14,28 @@ export class VisitStore {
     CREATE TABLE IF NOT EXISTS visit_progress(owner_hash TEXT PRIMARY KEY, entered INTEGER, last_sample INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS visit_rewards(owner_hash TEXT NOT NULL, region_id TEXT NOT NULL, source TEXT NOT NULL, acquired_at TEXT NOT NULL, PRIMARY KEY(owner_hash,region_id,source));`);}
   state(token){const a=this.accounts,owner=a.participantOwner(token);return {policy:MOCK_VISIT_POLICY,simulationEnabled:a.mockLocationAccess===true,rewards:a.db.prepare('SELECT region_id AS regionId, source, acquired_at AS acquiredAt FROM visit_rewards WHERE owner_hash=?').all(owner)};}
-  sample(token,s){
+  vehicle(token,s){
+    const a=this.accounts; a.participantOwner(token);
+    if(a.mockLocationAccess!==true)throw new Error('SIMULATION_DISABLED');
+    if(!s||s.source!=='pleos-emulator')throw new Error('INVALID_LOCATION');
+    const now=a.now();
+    const fresh=s.valid===true&&Number.isSafeInteger(s.measuredAt)&&s.measuredAt<=now+5000&&now-s.measuredAt<=30000;
+    if(fresh&&(!Number.isFinite(s.latitude)||Math.abs(s.latitude)>90||!Number.isFinite(s.longitude)||Math.abs(s.longitude)>180))throw new Error('INVALID_LOCATION');
+    const result=this.sample(token,{source:'simulation',timestamp:now,latitude:fresh?s.latitude:90,longitude:fresh?s.longitude:0},'vehicle-'+accountKey(token));
+    return {...result,locationFresh:fresh,input:'pleos-emulator'};
+  }
+  sample(token,s,stream=null){
     const a=this.accounts,owner=a.participantOwner(token);
     if(a.mockLocationAccess!==true)throw new Error('SIMULATION_DISABLED');
     if(!s||s.source!=='simulation'||!Number.isFinite(s.latitude)||Math.abs(s.latitude)>90||!Number.isFinite(s.longitude)||Math.abs(s.longitude)>180||!Number.isSafeInteger(s.timestamp)||s.timestamp<0)throw new Error('INVALID_LOCATION');
+    const progressKey=stream??owner;
     const db=a.db;db.exec('BEGIN IMMEDIATE');
     try{
-      const previous=db.prepare('SELECT * FROM visit_progress WHERE owner_hash=?').get(owner);
+      const previous=db.prepare('SELECT * FROM visit_progress WHERE owner_hash=?').get(progressKey);
       if(previous&&s.timestamp<=previous.last_sample){db.exec('COMMIT');return {...this.state(token),ignored:true};}
       let entered=null;
       if(inside(s))entered=previous&&previous.entered!==null&&s.timestamp-previous.last_sample<=MOCK_VISIT_POLICY.maxGapMs?previous.entered:s.timestamp;
-      db.prepare('INSERT INTO visit_progress VALUES (?,?,?) ON CONFLICT(owner_hash) DO UPDATE SET entered=excluded.entered,last_sample=excluded.last_sample').run(owner,entered,s.timestamp);
+      db.prepare('INSERT INTO visit_progress VALUES (?,?,?) ON CONFLICT(owner_hash) DO UPDATE SET entered=excluded.entered,last_sample=excluded.last_sample').run(progressKey,entered,s.timestamp);
       let awarded=false;
       if(entered!==null&&s.timestamp-entered>=MOCK_VISIT_POLICY.dwellMs){
         const acquiredAt=new Date(a.now()).toISOString();

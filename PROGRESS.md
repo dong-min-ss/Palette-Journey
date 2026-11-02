@@ -262,3 +262,10 @@
 - 검증: gradlew.bat :app:assembleDebug :app:testDebugUnitTest 성공(기존18개). :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.palettejourney.VehicleSignalsDeviceTest 최종 성공. XML tests=1 failures=0 errors=0,0.860초. Pleos API34에서 FusedLocation.isSupported=true/실제 SDK의 null이 아닌 좌표/finite 차량속도/유효 기어 읽기 확인. 에뮬레이터 시뮬레이션이며 실차 인증 아님.
 - 최초 기기 서비스/패키지 응답 지연으로 재실행, 최초 테스트 CAR_SPEED 권한 거부는 런타임 요청 구현 후 해결. CAR_POWERTRAIN 설치 허용, CAR_SPEED/FUSED_LOCATION 런타임 허용 필요 확인. 문서·재현·한계는 LOCATION_INTEGRATION.md.
 - 다음: SDK 좌표 시각/최신성/누락, 가상 GPS 이동과 P↔D/속도 상태 전이를 검증하고 경주 방문 어댑터에 연결. CarUxRestrictions 및 정차 허용 정책 통합은 별도 검증 전까지 실차 조작 잠금 유지. 휴대폰은 동일 Wi-Fi 사용 가능 시 실사용 검증.
+
+## 2026-11-02 — 실시간 GPS 방문 보상 연결
+- 차량 진단 화면에 DEBUG/에뮬레이터 전용 명시 시작·중지 추가. 최신 SDK 좌표/시각을5초마다 가족 세션의 /api/session/visits/vehicle로 전송. 화면 이탈/중지 시 체류 초기화 요청, 위치 없음/30초 초과 오래된 좌표/미래5초 초과는 서버에서 초기화한다.
+- 체류는 서버 수신 시간으로 계산하며 기존 가속 시연 진행과 분리한다. 가족의 simulation 보상 영수증은 공유하므로 두 경로 모두 지급해도 색3개/스티커2개만 보유한다. 실차/운전자 조작 허용에는 연결하지 않는다.
+- 공식 Virtual Console 포트8088 연결. 일반 ADB 기어 주입은 P 유지/실패했고 non-user build 요구 확인. 공식 화면 D 전환 후 API D=8 읽기 성공, 가속을 유지하는 동안 속도>=1m/s 확인. P/0으로 복원 후 P=4 읽기 성공. GPS emu geo fix로 밖37.0→안35.8347 이동 좌표 수신 확인. 각 기기 테스트1개 실제 통과.
+- npm.cmd run check 49/49, Gradle assembleDebug/testDebugUnitTest 성공(기존18개). 새 GpsVisitDeviceTest 실제1개 통과: SDK GPS를 서버에 실시간 전송→120초 체류→가족 다른 접속 색14개/지역스티커2개 확인. XML time=123.580, failures=0/errors=0.10초마다 경주 GPS 갱신한 호스트 시험 루프 종료. 합성 시험 가족 세션 취소, 기존 개인 기기 자격증명 변경 없음.
+- 실제 개발 서버 재시작으로 새 엔드포인트 적용. 새 APK가 에뮬레이터에 설치된 상태. 실제 휴대폰은 동일 Wi-Fi 사용 가능 시 화면 검증 필요. 실차 신뢰/위치 confidence 정책/실제 경계/운영 체류/CarUxRestrictions는 후속이다.

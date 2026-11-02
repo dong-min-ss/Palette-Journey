@@ -41,3 +41,23 @@ test('mock HTTP endpoint requires active family and explicit simulation opt-in',
  assert.equal((await send(token())).status,401);a.mockLocationAccess=false;assert.equal((await send(member)).status,403);a.mockLocationAccess=true;assert.equal((await send(member)).status,200);
  }finally{await new Promise(r=>server.close(r));a.close();}
 });
+
+test('vehicle samples use server time, isolate accelerated routes and reset stale/missing positions',()=>{
+ const {a,member,v}=setup();let now=1000000;a.now=()=>now;
+ const position=()=>({source:'pleos-emulator',valid:true,latitude:35.8347,longitude:129.219,measuredAt:now});
+ try{
+  // A future sample on the accelerated channel cannot poison the GPS clock.
+  v.sample(member,sample(now+999999));
+  assert.equal(v.vehicle(member,position()).dwellMs,0);
+  now+=30000;assert.equal(v.vehicle(member,position()).dwellMs,30000);
+  now+=30001;assert.equal(v.vehicle(member,{...position(),measuredAt:now-30001}).locationFresh,false);
+  now+=1000;assert.equal(v.vehicle(member,position()).dwellMs,0);
+  now+=1000;assert.equal(v.vehicle(member,{source:'pleos-emulator',valid:false}).dwellMs,0);
+  now+=1000;
+  for(let i=0;i<=8;i++){const result=v.vehicle(member,position());assert.equal(result.awarded,i===8);now+=15000;}
+  assert.equal(a.sessionPalette(member).colors.length,14);
+  assert.equal(v.vehicle(member,position()).awarded,false);
+  assert.throws(()=>v.vehicle(member,{...position(),source:'real-vehicle'}),/INVALID_LOCATION/);
+  assert.throws(()=>v.vehicle(member,{...position(),latitude:NaN}),/INVALID_LOCATION/);
+ }finally{a.close();}
+});

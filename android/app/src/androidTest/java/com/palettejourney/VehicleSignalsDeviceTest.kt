@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class VehicleSignalsDeviceTest {
  @Test fun readOnlyPlatformSignals(){
+  val args=InstrumentationRegistry.getArguments()
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
   automation.grantRuntimePermission(context.packageName,"android.car.permission.CAR_SPEED")
@@ -24,17 +25,20 @@ class VehicleSignalsDeviceTest {
    val speed=p.getFloatProperty(VehiclePropertyIds.PERF_VEHICLE_SPEED,0)
    val gear=p.getIntProperty(VehiclePropertyIds.GEAR_SELECTION,0)
    assertTrue(speed.isFinite());assertTrue(gear>0)
+   if(args.containsKey("minimumSpeed"))assertTrue("moving speed",speed>=args.getString("minimumSpeed")!!.toFloat())
+   if(args.containsKey("expectedGear"))assertEquals(args.getString("expectedGear")!!.toInt(),gear)
    android.util.Log.i("PaletteSignalsTest","vehicle speed=$speed gear=$gear")
   }finally{car.disconnect()}
   val fused=FusedLocation(context);assertTrue("FusedLocation supported",fused.isSupported())
   val received=CountDownLatch(1);var result:LocationData?=null;var error:Exception?=null
   val listener=object:FusedLocationListener {
-   override fun onChanged(data:LocationData?){result=data;received.countDown()}
+   override fun onChanged(data:LocationData?){if(data!=null && (!args.containsKey("expectedLatitude") || kotlin.math.abs(data.latitude-args.getString("expectedLatitude")!!.toDouble())<0.001)){result=data;received.countDown()}}
    override fun onError(e:Exception){error=e;received.countDown()}
   }
   try{fused.initialize();fused.registerFusedLocationCallback(listener);fused.getLastKnownLocation(listener)
    assertTrue("location callback within 20s",received.await(20,TimeUnit.SECONDS));assertNull(error)
    assertNotNull("non-null emulator location",result)
+   android.util.Log.i("PaletteSignalsTest","timestampDeltaMs="+(System.currentTimeMillis()-result!!.timestampMillis))
    assertTrue(result!!.latitude in -90.0..90.0);assertTrue(result!!.longitude in -180.0..180.0)
    android.util.Log.i("PaletteSignalsTest","fused location received; coordinates not logged")
   }finally{fused.unregisterFusedLocationCallback(listener);fused.release()}
