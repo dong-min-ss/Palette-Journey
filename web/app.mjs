@@ -96,7 +96,7 @@ function renderCatalog(catalog){
     else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
     const title=document.createElement('h3');title.textContent=item.name;
     const description=document.createElement('p');description.textContent=item.description;
-    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.unlocked?'해금됨':`잠김 · ${item.acquisition}`;
+    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.unlocked?(item.rewardSource==='simulation'?'모의 방문 보상 · 실제 방문 인증 아님':'해금됨'):`잠김 · ${item.acquisition}`;
     card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
   }
 }
@@ -253,3 +253,11 @@ function receivePairingLink(){const joinFragment=/^#join=([a-f0-9]{24})$/.exec(l
 if(joinFragment){$('code').value=joinFragment[1];history.replaceState(null,'',location.pathname);$('connection').hidden=false;status('QR 연결 코드를 확인하고 여행에 연결하기를 눌러주세요.');}}
 window.addEventListener('hashchange',receivePairingLink);receivePairingLink();
 setInterval(()=>{if(!document.hidden)refreshConnection();},5000);refreshConnection();
+
+async function refreshRewards(){if(!token)return;const credential=token;try{
+ const [colors,catalog,visits]=await Promise.all([api('/api/session/palette'),api('/api/session/catalog'),api('/api/session/visits')]);
+ if(token!==credential)return;palette=colors;renderPalette();renderCatalog(catalog);$('mock-visit').hidden=!visits.simulationEnabled;
+ $('visit-state').textContent=visits.rewards.length?'경주 모의 방문 보상 지급 완료 · 실제 방문 인증 아님':'아직 모의 방문 보상이 없어요.';
+}catch{}}
+$('mock-route').onclick=()=>busy($('mock-route'),async()=>{const start=Date.now();for(let i=0;i<=8;i++)await api('/api/session/visits/mock','POST',{source:'simulation',latitude:35.8347,longitude:129.219,timestamp:start+i*15000});await refreshRewards();status('2분 경로를 가속 재생했어요. 모의 방문 보상을 확인해주세요.');});
+setInterval(()=>{if(!document.hidden)refreshRewards();},5000);refreshRewards();

@@ -17,7 +17,7 @@ import com.google.zxing.common.BitMatrix;
 public class VehicleConnectionActivity extends Activity {
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private final Handler handler=new Handler();
-    private TextView status,codeLabel;private EditText code,origin;private Spinner pages;private ImageView qr;
+    private TextView status,codeLabel,rewards;private EditText code,origin;private Spinner pages;private ImageView qr;
     private String token,codeInput,originInput;private int pagePosition;private JSONArray pageList=new JSONArray();
     private LinearLayout root;private boolean working=false,visible=false;private int qrGeneration=0;
     interface Work {void run()throws Exception;}
@@ -32,6 +32,7 @@ public class VehicleConnectionActivity extends Activity {
         code=new EditText(this);code.setHint("기존 웹의 24자리 연결 코드");code.setSingleLine(true);root.addView(code);
         button("기존 웹 가족에 연결",()->{String input=codeInput.trim().toLowerCase(java.util.Locale.ROOT);if(!input.matches("[a-f0-9]{24}"))throw new Exception();String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",input),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
         button("차량 가족 연결 시작·재연결",()->{String owner=VehicleApi.load(this,"owner");if(owner==null){owner=VehicleApi.randomToken();VehicleApi.save(this,"owner",owner);}VehicleApi.request("/api/account","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
+        rewards=new TextView(this);root.addView(rewards);
         pages=new Spinner(this);root.addView(pages);
         button("선택 페이지 함께 보기",()->{requireToken();int position=pagePosition;if(position<0)throw new Exception();JSONObject latest=VehicleApi.request("/api/session/connection","GET",null,token);VehicleApi.request("/api/session/connection","PUT",new JSONObject().put("pageId",pageList.getJSONObject(position).getString("id")).put("revision",latest.getInt("revision")),token);loadLibrary();});
         origin=new EditText(this);origin.setSingleLine(true);origin.setHint("휴대폰 접속 주소: http://PC의Wi-Fi주소:3000");origin.setText(getPreferences(0).getString("webOrigin","http://localhost:3000"));root.addView(origin);
@@ -42,14 +43,22 @@ public class VehicleConnectionActivity extends Activity {
         if(token!=null)run(this::loadLibrary);
     }
     private void requireToken()throws Exception{if(token==null)throw new Exception();}
+    private void refreshRewards()throws Exception{
+        JSONObject palette=VehicleApi.request("/api/session/palette","GET",null,token),catalog=VehicleApi.request("/api/session/catalog","GET",null,token);
+        StringBuilder text=new StringBuilder("가족 공유 팔레트 · ");JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");text.append(colors.length()).append("색\n");
+        for(int i=0;i<colors.length();i++){JSONObject c=colors.getJSONObject(i);if("region".equals(c.optString("source")))text.append(c.optString("name")).append(" ").append(c.optString("hex")).append("\n");}
+        for(int i=0;i<stickers.length();i++){JSONObject item=stickers.getJSONObject(i);if("regional".equals(item.optString("kind"))&&item.optBoolean("unlocked"))text.append(item.getString("name")).append(item.optBoolean("developmentUnlocked")?" · 개발용":" · 모의 방문 보상").append("\n");}
+        text.append("실제 방문 인증 아님 · Pleos 위치 미연동");String value=text.toString();handler.post(()->{if(!isDestroyed())rewards.setText(value);});
+    }
     private void loadLibrary()throws Exception{
+        refreshRewards();
         JSONObject library=VehicleApi.request("/api/session/library","GET",null,token),connection=VehicleApi.request("/api/session/connection","GET",null,token);
         String webOrigin=connection.optString("webOrigin","http://localhost:3000");
         JSONArray list=library.getJSONArray("pages"),diaries=library.getJSONArray("diaries"),children=library.getJSONArray("children"),trips=library.getJSONArray("trips");String[] names=new String[list.length()];
         for(int i=0;i<list.length();i++){JSONObject page=list.getJSONObject(i);String prefix="";for(int j=0;j<diaries.length();j++)if(diaries.getJSONObject(j).getString("id").equals(page.getString("diaryId"))){JSONObject diary=diaries.getJSONObject(j);prefix=diary.getString("title")+" / ";for(int k=0;k<children.length();k++)if(children.getJSONObject(k).getString("id").equals(diary.getString("childId")))prefix=children.getJSONObject(k).getString("name")+" / "+prefix;for(int k=0;k<trips.length();k++)if(trips.getJSONObject(k).getString("id").equals(diary.getString("tripId")))prefix=trips.getJSONObject(k).getString("title")+" / "+prefix;}names[i]=prefix+page.getString("title");}
         handler.post(()->{if(isDestroyed())return;pageList=list;if(!getPreferences(0).contains("webOrigin"))origin.setText(webOrigin);pages.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n연결은 최대 8시간 유지돼요. 녹음은 차량에만 보관돼요.");});
     }
-    private final Runnable poll=new Runnable(){public void run(){if(!visible)return;if(token!=null&&!working)VehicleConnectionActivity.this.run(()->{JSONObject connection=VehicleApi.request("/api/session/connection","GET",null,token);handler.post(()->{JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n녹음은 차량에만 보관돼요.");});});handler.postDelayed(this,5000);}};
+    private final Runnable poll=new Runnable(){public void run(){if(!visible)return;if(token!=null&&!working)VehicleConnectionActivity.this.run(()->{refreshRewards();JSONObject connection=VehicleApi.request("/api/session/connection","GET",null,token);handler.post(()->{JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n녹음은 차량에만 보관돼요.");});});handler.postDelayed(this,5000);}};
     @Override protected void onStart(){super.onStart();visible=true;handler.postDelayed(poll,5000);}
     @Override protected void onStop(){super.onStop();visible=false;handler.removeCallbacks(poll);qrGeneration++;if(qr!=null)qr.setImageDrawable(null);if(codeLabel!=null)codeLabel.setText("QR은 다시 발급해주세요.");}
     @Override protected void onDestroy(){super.onDestroy();handler.removeCallbacksAndMessages(null);executor.shutdownNow();}

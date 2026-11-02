@@ -8,6 +8,7 @@ import { VoiceStore } from './voice.mjs';
 import { ConnectionStore } from './connection.mjs';
 import { DiaryStore } from './diaries.mjs';
 import { contentCatalog } from '../core/catalog.mjs';
+import { VisitStore } from './visits.mjs';
 import { ownedStickers } from './stickers.mjs';
 
 async function readJson(req) {
@@ -22,6 +23,7 @@ async function readJson(req) {
 
 export function createApp(store,options={}) {
   const diaries=new DiaryStore(store),voice=new VoiceStore(diaries),connection=new ConnectionStore(store,diaries),conversation=new ConversationStore(voice,options.synthesizeQuestions);
+  const visits=new VisitStore(store);
   return createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -56,6 +58,8 @@ export function createApp(store,options={}) {
       else if(req.method==='GET'&&req.url==='/api/session/connection')result=connection.get(token);
       else if(req.method==='PUT'&&req.url==='/api/session/connection')result=connection.set(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/invitations')result=store.invite(token);
+      else if(req.method==='GET'&&req.url==='/api/session/visits')result=visits.state(token);
+      else if(req.method==='POST'&&req.url==='/api/session/visits/mock')result=visits.sample(token,await readJson(req));
       else if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickerAccess===true);
       else if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);
       else if(req.method==='POST'&&req.url==='/api/session/children')result=diaries.createChild(token,await readJson(req));
@@ -89,7 +93,7 @@ export function createApp(store,options={}) {
       } else { res.statusCode = 404; res.end(JSON.stringify({ error: 'NOT_FOUND' })); return; }
       res.end(JSON.stringify(result));
     } catch (error) {
-      const codes = { CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
+      const codes = { SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
         INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400 };
       res.statusCode = codes[error.message] ?? 500;
@@ -103,6 +107,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(directory, { recursive: true });
   const store = new AccountStore(resolve(directory, 'palette.sqlite'));
   store.developmentStickerAccess = process.env.PALETTE_DEV_UNLOCK_STICKERS === '1';
+  store.mockLocationAccess = process.env.PALETTE_MOCK_LOCATION === '1';
   const server = createApp(store);
   server.listen(3000, process.env.PALETTE_LISTEN_HOST || '127.0.0.1', () => console.log('Palette Journey: '+(process.env.PALETTE_WEB_ORIGIN||'http://127.0.0.1:3000')));
   const stop = () => server.close(() => { store.close(); });

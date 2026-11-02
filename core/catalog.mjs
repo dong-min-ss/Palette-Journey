@@ -11,8 +11,8 @@ export const REGIONAL_COLORS = Object.freeze([
   {id:'gyeongju-night',name:'첨성대 별밤',hex:'#293C70',regionId:'gyeongju',motif:'별을 바라보는 밤',description:'첨성대 위로 펼쳐지는 밤하늘을 상상한 남색이에요.',acquisition:'경주 체류 또는 지정 장소 방문 확인 후 수집 예정 · 조건 준비 중'},
 ]);
 export function contentCatalog(palette, owned=[], development=false) {
-  return {region:{id:'gyeongju',name:'경주'},phase:'preview',
-    stickers:STICKERS.map(item=>({...item,developmentUnlocked:development&&item.kind==='regional',unlocked:item.kind==='basic'||owned.some(s=>s.stickerId===item.id)})),
-    colors:REGIONAL_COLORS.map(item=>({...item,unlocked:palette.colors.some(c=>c.id===`region-${item.id}`)})),
-    note:(development?'개발용 스티커 해금 중 · 방문 인증 아님. ':'')+'경주부터 시작하는 사전이에요. 지역 방문 판정과 스티커 해금은 준비 중이에요. 색은 창작용 시안이며 실제 표준색이 아니에요.'};
+  return {region:{id:'gyeongju',name:'경주'},phase:'simulation',
+    stickers:STICKERS.map(item=>({...item,developmentUnlocked:development&&item.kind==='regional'&&!owned.some(s=>s.stickerId===item.id&&s.visitId),rewardSource:owned.find(s=>s.stickerId===item.id)?.visitId?.startsWith('simulation-')?'simulation':null,unlocked:item.kind==='basic'||owned.some(s=>s.stickerId===item.id)})),
+    colors:REGIONAL_COLORS.map(item=>({...item,rewardSource:palette.colors.find(c=>c.id===`region-${item.id}`)?.visitSource??null,unlocked:palette.colors.some(c=>c.id===`region-${item.id}`)})),
+    note:(development?'개발용 스티커 해금 중 · 방문 인증 아님. ':'')+'경주부터 시작하는 사전이에요. 모의 방문 보상은 실제 방문 인증과 구분돼요. 실제 위치 연동은 준비 중이에요. 색은 창작용 시안이며 실제 표준색이 아니에요.'};
 }
