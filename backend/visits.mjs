@@ -22,7 +22,7 @@ export class VisitStore {
     const fresh=s.valid===true&&Number.isSafeInteger(s.measuredAt)&&s.measuredAt<=now+5000&&now-s.measuredAt<=30000;
     if(fresh&&(!Number.isFinite(s.latitude)||Math.abs(s.latitude)>90||!Number.isFinite(s.longitude)||Math.abs(s.longitude)>180))throw new Error('INVALID_LOCATION');
     const result=this.sample(token,{source:'simulation',timestamp:now,latitude:fresh?s.latitude:90,longitude:fresh?s.longitude:0},'vehicle-'+accountKey(token));
-    return {...result,locationFresh:fresh,input:'pleos-emulator'};
+    return {...result,locationFresh:fresh,inRegion:fresh&&inside(s),input:'pleos-emulator'};
   }
   sample(token,s,stream=null){
     const a=this.accounts,owner=a.participantOwner(token);

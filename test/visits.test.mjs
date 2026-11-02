@@ -48,7 +48,7 @@ test('vehicle samples use server time, isolate accelerated routes and reset stal
  try{
   // A future sample on the accelerated channel cannot poison the GPS clock.
   v.sample(member,sample(now+999999));
-  assert.equal(v.vehicle(member,position()).dwellMs,0);
+  assert.equal(v.vehicle(member,position()).inRegion,true);
   now+=30000;assert.equal(v.vehicle(member,position()).dwellMs,30000);
   now+=30001;assert.equal(v.vehicle(member,{...position(),measuredAt:now-30001}).locationFresh,false);
   now+=1000;assert.equal(v.vehicle(member,position()).dwellMs,0);

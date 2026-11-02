@@ -72,6 +72,12 @@ public class VehicleSignalsActivity extends Activity {
     @Override public void onStart(){super.onStart();if(!BuildConfig.DEBUG||!(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish")))return;active=true;render();startLocation();handler.post(poll);}
     private void startLocation(){try{location=new FusedLocation(this);if(location.isSupported()){location.initialize();location.registerFusedLocationCallback(listener);location.getLastKnownLocation(listener);}else locationState="FusedLocation 미지원";}catch(Exception e){locationState="위치 초기화 실패: "+e.getClass().getSimpleName();}render();}
     private void stopLocation(){if(location!=null){try{location.unregisterFusedLocationCallback(listener);location.release();}catch(Exception ignored){}location=null;}}
+    private String connectionMessage(Exception e){
+        if("HTTP 401".equals(e.getMessage()))return "가족 연결 만료 · 가족 연결에서 새 시연 가족을 만들어주세요.";
+        if("HTTP 403".equals(e.getMessage()))return "서버의 모의 위치 시연이 꺼져 있어요.";
+        if(e instanceof IllegalStateException)return "가족 연결이 없어요 · 먼저 새 시연 가족을 만들어주세요.";
+        return "서버 전송 실패 · 서버 실행과 연결을 확인해주세요.";
+    }
     private void refreshAssets(){try{
         if(participant==null)participant=VehicleApi.load(this);if(participant==null)throw new IllegalStateException();
         org.json.JSONObject catalog=VehicleApi.request("/api/session/catalog","GET",null,participant);
@@ -79,7 +85,7 @@ public class VehicleSignalsActivity extends Activity {
         for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!"gyeongju".equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(owned){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(owned?(item.optBoolean("developmentUnlocked")?" · 개발용 해금":" · 해금됨"):" · 잠김").append("\n");}}
         String value="경주 색 "+colors+"/3 · 스티커 "+stickers+"/2\n"+list;
         handler.post(()->{if(active)assetValue.setText(value);});
-    }catch(Exception e){handler.post(()->{if(active)assetValue.setText("가족 연결/서버를 확인해주세요.");});}}
+    }catch(Exception e){handler.post(()->{if(active){assetValue.setText(connectionMessage(e));if("HTTP 401".equals(e.getMessage())){collect=false;rewardState="시연 중단 · 가족 연결 만료";render();}}});}}
     private void sendReset(){if(participant!=null)try{VehicleApi.request("/api/session/visits/vehicle","POST",new org.json.JSONObject().put("source","pleos-emulator").put("valid",false),participant);}catch(Exception ignored){}}
     private final CarPropertyManager.CarPropertyEventCallback signalListener=new CarPropertyManager.CarPropertyEventCallback(){
         public void onChangeEvent(android.car.hardware.CarPropertyValue value){
@@ -99,9 +105,9 @@ public class VehicleSignalsActivity extends Activity {
             org.json.JSONObject body=new org.json.JSONObject().put("source","pleos-emulator").put("valid",sample!=null);
             if(sample!=null)body.put("latitude",sample.getLatitude()).put("longitude",sample.getLongitude()).put("measuredAt",sample.getTimestampMillis());
             org.json.JSONObject result=VehicleApi.request("/api/session/visits/vehicle","POST",body,participant);
-            String message=result.getJSONArray("rewards").length()>0?"경주 모의 방문 보상 지급 완료 · 색3개/스티커2개":result.optBoolean("locationFresh")?"경주 시연 구역 체류 "+result.optLong("dwellMs")/1000+" / 120초":"위치 없음·오래된 위치: 체류 초기화";
+            String message=result.getJSONArray("rewards").length()>0?"경주 모의 방문 보상 지급 완료 · 색3개/스티커2개":!result.optBoolean("locationFresh")?"위치 없음·오래된 위치: 체류 초기화":!result.optBoolean("inRegion")?"GPS 수신 정상 · 경주 밖에서 대기 중":"GPS 수신 정상 · 경주 체류 "+result.optLong("dwellMs")/1000+" / 120초";
             handler.post(()->{if(active){rewardState=message;render();}});
-        }catch(Exception e){handler.post(()->{if(active){rewardState="전송 실패 · 가족 연결/서버/시연 설정을 확인해주세요.";render();}});}}
+        }catch(Exception e){handler.post(()->{if(active){rewardState=connectionMessage(e);if("HTTP 401".equals(e.getMessage()))collect=false;render();}});}}
         if(refresh||sending)refreshAssets();}finally{networkBusy=false;}});}
         worker.execute(()->{String value;try{if(car==null){car=Car.createCar(VehicleSignalsActivity.this);properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);
             if(!properties.registerCallback(signalListener,VehiclePropertyIds.PERF_VEHICLE_SPEED,CarPropertyManager.SENSOR_RATE_ONCHANGE)||!properties.registerCallback(signalListener,VehiclePropertyIds.GEAR_SELECTION,CarPropertyManager.SENSOR_RATE_ONCHANGE))throw new IllegalStateException("SIGNAL_SUBSCRIPTION_FAILED");}
