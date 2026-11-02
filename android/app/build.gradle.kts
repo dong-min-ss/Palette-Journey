@@ -5,6 +5,7 @@ plugins {
 android {
     buildFeatures { buildConfig = true }
     namespace = "com.palettejourney"
+    useLibrary("android.car")
     compileSdk {
         version = release(37)
     }
@@ -35,6 +36,7 @@ android {
 
 dependencies {
     implementation("com.google.zxing:core:3.5.3")
+    implementation("ai.pleos.playground:FusedLocation:1.1.3")
     implementation("ai.pleos.playground:TextToSpeech:3.3.1")
     implementation("ai.pleos.playground:SpeechToText:3.3.1")
     implementation(libs.androidx.appcompat)

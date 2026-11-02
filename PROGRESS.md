@@ -255,3 +255,10 @@
 - 명령: gradlew.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.palettejourney.VisitRewardsDeviceTest --rerun-tasks. 실제 결과 XML tests=1 failures=0 errors=0, sharedRewardsAndReconnect 1.229초. 최초 기기 없음/부팅 중 tests=0 결과는 통과로 계산하지 않았고 부팅 완료 후 재실행했다.
 - 사용자 현재 외부 작업 중이며 휴대폰은 모바일 데이터, 노트북과 동일 Wi-Fi가 아니므로 실제 휴대폰 화면 확인 불가. 에뮬레이터의 두 참여자 검증을 실제 휴대폰 UI 검증으로 간주하지 않는다. 외부 터널/배포/방화벽 변경 없음.
 - 다음: Pleos 실제 위치·정차 API 접근/권한/누락 상태 검증과 어댑터 연결. 휴대폰 실사용 보상 표시 시험은 동일 Wi-Fi 사용 가능 시 별도로 수행한다.
+
+## 2026-11-02 — Pleos 위치·차량 상태 읽기 API 확인
+- 공식 문서의 FusedLocation 위치 API와 AAOS 속도/기어 경로 확인. 공개 Maven metadata에 문서 예제1.1.2가 없어 실제 공개1.1.3 고정. android.car 선택 라이브러리, 위치/속도/기어 읽기 권한 추가.
+- 가족 연결 화면에 위치·속도·기어 읽기 전용 진단 추가. 위치/속도 런타임 권한 요청, 위치 callback/null/error/미지원 표시, 화면 이탈 시 해제. 좌표 서버 전송/보상/운전자 조작 잠금에는 아직 연결하지 않는다.
+- 검증: gradlew.bat :app:assembleDebug :app:testDebugUnitTest 성공(기존18개). :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.palettejourney.VehicleSignalsDeviceTest 최종 성공. XML tests=1 failures=0 errors=0,0.860초. Pleos API34에서 FusedLocation.isSupported=true/실제 SDK의 null이 아닌 좌표/finite 차량속도/유효 기어 읽기 확인. 에뮬레이터 시뮬레이션이며 실차 인증 아님.
+- 최초 기기 서비스/패키지 응답 지연으로 재실행, 최초 테스트 CAR_SPEED 권한 거부는 런타임 요청 구현 후 해결. CAR_POWERTRAIN 설치 허용, CAR_SPEED/FUSED_LOCATION 런타임 허용 필요 확인. 문서·재현·한계는 LOCATION_INTEGRATION.md.
+- 다음: SDK 좌표 시각/최신성/누락, 가상 GPS 이동과 P↔D/속도 상태 전이를 검증하고 경주 방문 어댑터에 연결. CarUxRestrictions 및 정차 허용 정책 통합은 별도 검증 전까지 실차 조작 잠금 유지. 휴대폰은 동일 Wi-Fi 사용 가능 시 실사용 검증.
