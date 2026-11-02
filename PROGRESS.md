@@ -248,3 +248,10 @@
 - 웹 사전의 가속 모의 경로 버튼과5초 보상 갱신, Android 가족 연결 화면의 색/스티커 목록5초 갱신 추가. 기존 서버 로컬 .env에서 모의 위치만 활성화하고 재시작/health ok. 기존 개발용 설정 보존. APK 데이터 보존 설치 성공.
 - 검증: npm.cmd run check 48/48 통과. 진입/짧은 체류/이탈/공백/순서 역전/재진입/동일 가족/별도 가족/재접속/DB 재시작/개발용 분리/HTTP 권한과 기능 플래그 포함. 최초 샌드박스 로컬 통신 EACCES 후 승인된 실행으로 전체 통과. Gradle :app:assembleDebug :app:testDebugUnitTest 성공.
 - 아직 미검증: 실제 휴대폰·차량 화면에서 이번 보상의 동시 표시 실사용. Pleos 실제 위치·정차 API는 미연결이며 기존 실차 조작 잠금을 유지한다.
+
+## 2026-11-02 — 경주 가족 보상 기기 통합 검증
+- VisitRewardsDeviceTest 추가. 개인 자격증명/마이크를 사용하지 않는 합성 가족으로 실제 Pleos API34 에뮬레이터의 Android HttpURLConnection → 개발 서버 경로를 검증했다.
+- 차량 접속으로 모의 방문 전송 → 동일 가족의 별도 참여자에서 색14개(기본11+경주3)/지역 스티커2개/simulation 출처/개발용 표시 해제/티켓1장 유지 확인. 이탈·재진입·새 세션 재연결 후 보상 이력1건/색14개 유지. 마지막 시험 세션 취소.
+- 명령: gradlew.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.palettejourney.VisitRewardsDeviceTest --rerun-tasks. 실제 결과 XML tests=1 failures=0 errors=0, sharedRewardsAndReconnect 1.229초. 최초 기기 없음/부팅 중 tests=0 결과는 통과로 계산하지 않았고 부팅 완료 후 재실행했다.
+- 사용자 현재 외부 작업 중이며 휴대폰은 모바일 데이터, 노트북과 동일 Wi-Fi가 아니므로 실제 휴대폰 화면 확인 불가. 에뮬레이터의 두 참여자 검증을 실제 휴대폰 UI 검증으로 간주하지 않는다. 외부 터널/배포/방화벽 변경 없음.
+- 다음: Pleos 실제 위치·정차 API 접근/권한/누락 상태 검증과 어댑터 연결. 휴대폰 실사용 보상 표시 시험은 동일 Wi-Fi 사용 가능 시 별도로 수행한다.
