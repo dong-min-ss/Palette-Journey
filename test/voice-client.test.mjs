@@ -47,3 +47,14 @@ test('cancelling a pending permission request stops any late microphone stream',
     resolvePermission({getTracks:()=>[{stop(){stops++;}}]});await pending;assert.equal(stops,1);assert.equal(editor.blocked(),false);
   }finally{for(const [key,descriptor] of originals){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
 });
+
+test('dated diary preloads one complete conversation and a tap plays it without browser speech or another fetch',async()=>{
+ const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{paused:true,ended:false,checked:false,pause(){this.paused=true;},play(){this.paused=false;this.onplay?.();return Promise.resolve();},removeAttribute(){},load(){},replaceChildren(){},focus(){}});return nodes.get(id);};
+ let requests=0,spoken=0;const originals=new Map();
+ const recording={mode:'vehicle-answer-original',cues:[],duration:1000};
+ for(const [key,value] of Object.entries({document:{getElementById:get,createElement:()=>({}),addEventListener(){}},window:{addEventListener(){}},speechSynthesis:{speak(){spoken++;}},fetch:async path=>{requests++;assert.match(path,/voice\/conversation$/);return {ok:true,headers:{get:()=> '1'},blob:async()=>new Blob([new Uint8Array(100)],{type:'audio/wav'})};}})){
+  originals.set(key,Object.getOwnPropertyDescriptor(globalThis,key));Object.defineProperty(globalThis,key,{configurable:true,value});
+ }
+ try{const editor=createVoiceDiary({getPage:()=>({id:'p'}),getToken:()=> 'test',api:async()=>({revision:1,recording})});await editor.load('p');assert.equal(requests,1);assert.equal(get('voice-play').disabled,false);await get('voice-play').onclick();assert.equal(get('voice-player').paused,false);assert.equal(requests,1);assert.equal(spoken,0);await get('voice-play').onclick();assert.equal(get('voice-player').paused,true);editor.reset();}
+ finally{for(const [key,descriptor] of originals){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
+});

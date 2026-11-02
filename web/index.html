@@ -19,16 +19,15 @@
       <button data-panel="story" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">✎</span>제목·글</button>
       <button data-panel="stickers" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">☆</span>스티커</button>
       <button data-panel="colors" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">◉</span>색상</button>
-      <button data-panel="voice" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">♬</span>음성 일기</button>
       <button data-panel="catalog" aria-controls="menu-drawer" aria-expanded="false"><span aria-hidden="true">◇</span>사전</button>
     </nav>
     <aside id="menu-drawer" aria-label="스케치북 설정" hidden><button id="close-menu" class="secondary" aria-label="메뉴 닫기">닫기 ×</button>
       <section id="panel-connect" class="menu-panel" hidden><h2>차량과 함께 보기</h2><p id="shared-state" role="status"></p><button id="share-page">이 페이지 함께 보기</button><button id="open-shared">공유 페이지 열기</button><button id="invite-device">다른 기기 연결 코드 발급</button><p id="pair-code"></p><p>코드는 5분간 유효해요. 신뢰하는 기기에만 알려주세요. 연결한 기기는 가족 일기에 접근할 수 있어요.</p></section>
       <section id="panel-book" class="menu-panel" aria-labelledby="heading-book" hidden><h2 id="heading-book">나의 여행책</h2>    <section class="card library"><div class="book-selectors"><label>어린이 별명<select id="child"></select></label><label>여행<select id="trip"></select></label><label>그림일기<select id="diary"></select></label><label>페이지<select id="page"></select></label></div>
     <details><summary>새로운 기록 만들기</summary><div class="book-selectors"><form id="child-form"><label for="child-name">어린이 별명</label><input id="child-name" maxlength="40" required placeholder="실명 대신 별명"><button type="submit" class="secondary">어린이 추가</button></form><form id="trip-form"><label for="trip-title">여행 이름</label><input id="trip-title" maxlength="80" required><button type="submit" class="secondary">여행 추가</button></form><form id="diary-form"><label for="diary-title">그림일기 이름</label><input id="diary-title" maxlength="80" required><button type="submit" class="secondary">그림일기 추가</button></form></div></details>
-    <form id="page-form" class="new-page"><label for="new-page-title">새 페이지</label><input id="new-page-title" maxlength="80" required placeholder="페이지 이름"><button type="submit" class="secondary">페이지 추가</button></form></section>
+    <div id="dated-pages" aria-label="날짜별 그림일기"></div><form id="page-form" class="new-page"><label for="new-page-title">새 페이지</label><input id="new-page-title" maxlength="80" required placeholder="페이지 이름"><button type="submit" class="secondary">페이지 추가</button></form></section>
     <div class="actions"><button id="reload" class="secondary">저장된 페이지 불러오기</button><button id="recover-draft" class="secondary" hidden>임시 기록으로 이어쓰기</button></div><button id="disconnect" class="secondary">연결 나가기</button></section>
-      <section id="panel-story" class="menu-panel" aria-labelledby="heading-story" hidden><h2 id="heading-story">제목과 이야기</h2>    <label for="page-title">페이지 제목</label><input id="page-title" maxlength="80" placeholder="오늘 기억하고 싶은 순간">
+      <section id="panel-story" class="menu-panel" aria-labelledby="heading-story" hidden><h2 id="heading-story">제목과 이야기</h2><label for="page-date">그림일기 날짜</label><input type="date" id="page-date" required>    <label for="page-title">페이지 제목</label><input id="page-title" maxlength="80" placeholder="오늘 기억하고 싶은 순간">
     <label for="page-text">오늘의 이야기 <span class="hint">그림만 남겨도 괜찮아요.</span></label><textarea id="page-text" maxlength="2000" rows="4" placeholder="오늘 가장 기억나는 일은 무엇인가요?"></textarea>
 </section>
       <section id="panel-stickers" class="menu-panel" aria-labelledby="heading-stickers" hidden><h2 id="heading-stickers">스티커</h2>    <section class="card sticker-tools"><h2>색칠할 스티커 붙이기</h2><div id="sticker-picker" class="sticker-picker"></div><p class="hint">붙인 뒤 이동 모드로 드래그하세요. 브러시로 스티커 위를 직접 칠할 수 있어요.</p><div id="sticker-selection" hidden><span id="sticker-name"></span><span class="hint">점선 테두리의 모서리를 잡아 크기를 바꾸세요.</span><button id="remove-sticker" class="secondary">선택 스티커 빼기</button></div></section>
@@ -39,19 +38,17 @@
 </section>
       <section id="panel-catalog" class="menu-panel" aria-labelledby="heading-catalog" hidden><h2 id="heading-catalog">여행의 색과 스티커</h2>    <details class="card catalog"><summary>색깔·스티커 사전 · 경주</summary><p id="catalog-note" class="hint"></p><h2>기본 스티커</h2><div id="basic-stickers" class="catalog-grid"></div><h2>경주 방문으로 만나는 스티커</h2><div id="regional-stickers" class="catalog-grid"></div><h2>경주의 색 3가지</h2><div id="regional-colors" class="catalog-grid"></div></details>
 </section>
-      <section id="panel-voice" class="menu-panel" aria-labelledby="heading-voice" hidden>
-        <h2 id="heading-voice">말로 남기는 여행</h2><p class="badge">준비된 질문 시연 · 실제 AI 미연동</p>
-        <details><summary>웹에서 새 음성 일기 녹음하기</summary><p>보호자가 질문을 읽고 아이가 답해요. 마이크에 들어오는 질문과 답변을 함께 녹음해요.</p>
-        <p class="hint">최대 2분 · 이 서버에 가족 비공개로 저장해요. 외부 AI로 전송하거나 자동 문자 변환하지 않아요. 저장 전 녹음은 이 화면에만 남아요.</p>
-        <label class="voice-consent"><input id="voice-consent" type="checkbox"> 보호자가 녹음·비공개 보관 안내를 확인했고 함께 진행해요.</label>
-        <div class="voice-prompt"><span class="hint">보호자가 읽어주세요</span><p id="voice-question">오늘 어떤 일이 있었어?</p><span id="voice-clock">0 / 120초</span></div>
-        <div class="voice-actions"><button id="voice-start">보호자가 녹음 시작</button><button id="voice-next" class="secondary" disabled>건너뛰고 다음 질문</button><button id="voice-pause" class="secondary" disabled>잠시 쉬기</button><button id="voice-stop" class="secondary" disabled>녹음 종료</button></div>
-        </details>
-        <p id="voice-status" role="status" aria-live="polite">페이지를 선택해주세요.</p><audio id="voice-player" controls hidden></audio><ol id="voice-cues"></ol>
-        <div class="voice-actions"><button id="voice-save" disabled>이 페이지에 녹음 저장</button><button id="voice-download" class="secondary" disabled>저장 전 녹음 내려받기</button><button id="voice-discard" class="secondary" disabled>저장 전 녹음 버리기</button><button id="voice-play" class="secondary" disabled>저장된 대화 듣기</button><button id="voice-answer-only" class="secondary" hidden>답변 원음만 듣기</button><button id="voice-play-stop" class="secondary" disabled>재생 중지</button><button id="voice-delete" class="secondary" disabled>저장된 녹음 삭제</button></div>
-      </section>
     </aside>
-    <section class="sketch-workspace" aria-label="스케치북">    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="자유롭게 그리는 그림일기"></canvas><div id="sticker-layer"></div></div></div>
+    <section class="sketch-workspace" aria-label="스케치북"><div class="entry-heading"><time id="entry-date-display"></time><h1 id="entry-title-display"></h1></div>    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="자유롭게 그리는 그림일기"></canvas><div id="sticker-layer"></div></div></div>
+<section id="entry-conversation" class="entry-conversation" aria-labelledby="conversation-heading">
+ <div class="conversation-heading"><h2 id="conversation-heading">이 그림에 담긴 이야기</h2><button id="voice-play" disabled>대화 녹음 재생</button><span id="voice-playback-time" class="hint"></span></div>
+ <p id="voice-status" role="status" aria-live="polite">그림을 완성한 뒤 오늘의 이야기를 대화로 남겨보세요.</p><audio id="voice-player" preload="metadata" hidden></audio>
+ <details id="conversation-details"><summary>대화 내용·기록 관리</summary><p class="hint">차량에서 올린 이야기는 질문을 다시 읽은 음성과 답변 원음을 한 파일로 이어서 들려줘요.</p><button id="voice-refresh" class="secondary">차량에서 올린 대화 확인</button><ol id="voice-cues"></ol>
+ <details><summary>그림을 완성하고 보호자와 대화 녹음하기</summary><p>보호자가 질문을 읽고 아이가 답한 대화를 함께 녹음해요. 차량 앱에서 대화를 녹음해 이 페이지에 올려도 돼요.</p><p class="hint">웹 녹음은 최대2분 · 보호자 확인과 마이크 권한 필요</p>
+ <label class="voice-consent"><input id="voice-consent" type="checkbox">보호자가 녹음·가족 비공개 보관 안내를 확인했어요.</label><div class="voice-prompt"><p id="voice-question">오늘 어떤 일이 있었어?</p><span id="voice-clock">0 / 120초</span></div>
+ <div class="voice-actions"><button id="voice-start">대화 녹음 시작</button><button id="voice-next" disabled>다음 질문</button><button id="voice-pause" disabled>잠시 쉬기</button><button id="voice-stop" disabled>녹음 종료</button></div></details>
+ <div class="voice-actions"><button id="voice-save" disabled>이 그림일기에 대화 저장</button><button id="voice-download" class="secondary" disabled>저장 전 녹음 내려받기</button><button id="voice-discard" class="secondary" disabled>저장 전 녹음 버리기</button><button id="voice-delete" class="secondary" disabled>이 그림일기의 대화 삭제</button></div></details>
+</section>
 </section>
     <div class="tool-dock">    <div class="drawing-tools"><button id="brush" aria-pressed="true">브러시</button><button id="eraser" class="secondary" aria-pressed="false">지우개</button><button id="move-sticker" class="secondary" aria-pressed="false">스티커 이동</button><button id="undo" class="secondary">실행 취소</button><button id="redo" class="secondary">다시 실행</button><label for="size">굵기 <output id="size-label">12</output><input id="size" type="range" min="2" max="48" value="12"></label></div>
 <button id="open-colors" class="secondary" aria-label="색상 메뉴 열기"><span id="current-color" aria-hidden="true"></span>색상</button></div>

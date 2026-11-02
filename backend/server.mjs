@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { AccountStore, accountKey } from './store.mjs';
+import { ConversationStore } from './conversation.mjs';
 import { VoiceStore } from './voice.mjs';
 import { ConnectionStore } from './connection.mjs';
 import { DiaryStore } from './diaries.mjs';
@@ -19,8 +20,8 @@ async function readJson(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('INVALID_JSON'); }
 }
 
-export function createApp(store) {
-  const diaries=new DiaryStore(store),voice=new VoiceStore(diaries),connection=new ConnectionStore(store,diaries);
+export function createApp(store,options={}) {
+  const diaries=new DiaryStore(store),voice=new VoiceStore(diaries),connection=new ConnectionStore(store,diaries),conversation=new ConversationStore(voice,options.synthesizeQuestions);
   return createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -30,7 +31,6 @@ export function createApp(store) {
     try {
       const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
       for(const file of ['star','heart','cheomseongdae','silla-crown'])for(const suffix of ['', '-outline'])assets[`/assets/stickers/${file}${suffix}.svg`]=[`assets/stickers/${file}${suffix}.svg`,'image/svg+xml'];
-      assets['/conversation-playback.mjs']=['conversation-playback.mjs','text/javascript; charset=utf-8'];
       assets['/voice.mjs']=['voice.mjs','text/javascript; charset=utf-8'];
       assets['/stickers.mjs']=['stickers.mjs','text/javascript; charset=utf-8'];
       if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
@@ -44,7 +44,8 @@ export function createApp(store) {
       const token = /^Bearer ([a-f0-9]{64})$/.exec(req.headers.authorization ?? '')?.[1];
       accountKey(token);
       let result;
-      if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+\/voice\/vehicle$/.test(req.url)){result=voice.write(token,req.url.split('/')[4],await readJson(req),false,true);}
+      if(req.method==='GET'&&/^\/api\/session\/pages\/[^/]+\/voice\/conversation$/.test(req.url)){const data=await conversation.audio(token,req.url.split('/')[4]);res.setHeader('Content-Type',data.mime);res.setHeader('X-Voice-Revision',String(data.revision));res.end(data.audio);return;}
+      else if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+\/voice\/vehicle$/.test(req.url)){result=voice.write(token,req.url.split('/')[4],await readJson(req),false,true);}
       else if(/^\/api\/session\/pages\/[^/]+\/voice(?:\/audio)?$/.test(req.url)){
         const id=req.url.split('/')[4];
         if(req.method==='GET'&&req.url.endsWith('/audio')){const data=voice.audio(token,id);res.setHeader('Content-Type',data.mime);res.setHeader('X-Voice-Revision',String(data.revision));res.end(data.audio);return;}
@@ -88,7 +89,7 @@ export function createApp(store) {
       } else { res.statusCode = 404; res.end(JSON.stringify({ error: 'NOT_FOUND' })); return; }
       res.end(JSON.stringify(result));
     } catch (error) {
-      const codes = { CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
+      const codes = { CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
         INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400 };
       res.statusCode = codes[error.message] ?? 500;

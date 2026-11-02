@@ -7,6 +7,10 @@ function name(value, max = 80) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error('INVALID_DIARY');
   return value.trim();
 }
+function entryDate(value,now=Date.now()){
+ const day=value??new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date(now));
+ if(typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day+'T00:00:00Z'))||new Date(day+'T00:00:00Z').toISOString().slice(0,10)!==day)throw new Error('INVALID_DIARY');return day;
+}
 export class DiaryStore {
   constructor(accounts) {
     this.accounts = accounts;
@@ -46,7 +50,7 @@ export class DiaryStore {
       trips:this.db.prepare('SELECT id,title FROM trips WHERE family_id=? ORDER BY rowid').all(familyId),
       diaries:this.db.prepare(`SELECT d.id,d.trip_id AS tripId,d.child_id AS childId,d.title,d.created_at AS createdAt
         FROM diaries d JOIN trips t ON t.id=d.trip_id WHERE t.family_id=? ORDER BY d.rowid`).all(familyId),
-      pages:this.db.prepare(`SELECT p.id,p.diary_id AS diaryId,p.position,p.revision,json_extract(p.data,'$.title') AS title
+      pages:this.db.prepare(`SELECT p.id,p.diary_id AS diaryId,p.position,p.revision,json_extract(p.data,'$.title') AS title,coalesce(json_extract(p.data,'$.entryDate'),strftime('%Y-%m-%d',d.created_at,'+9 hours')) AS entryDate
         FROM pages p JOIN diaries d ON d.id=p.diary_id JOIN trips t ON t.id=d.trip_id WHERE t.family_id=? ORDER BY p.position`).all(familyId) };
   }
   createChild(token, body) {
@@ -79,17 +83,17 @@ export class DiaryStore {
     this.db.exec('BEGIN IMMEDIATE');
     try{
       const position=this.db.prepare('SELECT coalesce(max(position),-1)+1 AS n FROM pages WHERE diary_id=?').get(diaryId).n;
-      const id=randomUUID(),data={title,text:'',template,strokes:[],legacyRegions:{}};
+      const id=randomUUID(),data={title,entryDate:entryDate(body?.entryDate,this.accounts.now()),text:'',template,strokes:[],legacyRegions:{}};
       this.db.prepare('INSERT INTO pages VALUES (?,?,?,?,?)').run(id,diaryId,position,JSON.stringify(data),0);
       this.db.exec('COMMIT');return {id,diaryId,position,...data,revision:0};
     }catch(error){this.db.exec('ROLLBACK');throw error;}
   }
   page(token,id) {
     const family=this.family(token);
-    const row=this.db.prepare(`SELECT p.* FROM pages p JOIN diaries d ON d.id=p.diary_id
+    const row=this.db.prepare(`SELECT p.*,d.created_at AS diary_created FROM pages p JOIN diaries d ON d.id=p.diary_id
       JOIN trips t ON t.id=d.trip_id WHERE p.id=? AND t.family_id=?`).get(id,family);
     if(!row)throw new Error('DIARY_NOT_FOUND');
-    return {id:row.id,diaryId:row.diary_id,position:row.position,stickers:[],...JSON.parse(row.data),revision:row.revision};
+    return {id:row.id,diaryId:row.diary_id,position:row.position,entryDate:entryDate(undefined,Date.parse(row.diary_created)),stickers:[],...JSON.parse(row.data),revision:row.revision};
   }
   savePage(token,id,body) {
     const title=name(body?.title);
@@ -112,7 +116,7 @@ export class DiaryStore {
         return {...item,strokes:paint};
       });
       if(totalPoints>20000)throw new Error('INVALID_ARTWORK');
-      const data={title,text:body.text,template:current.template,strokes,stickers,legacyRegions:current.legacyRegions};
+      const data={title,entryDate:entryDate(body.entryDate??current.entryDate),text:body.text,template:current.template,strokes,stickers,legacyRegions:current.legacyRegions};
       this.db.prepare('UPDATE pages SET data=?,revision=revision+1 WHERE id=?').run(JSON.stringify(data),id);
       this.db.exec('COMMIT');return {...current,...data,revision:current.revision+1};
     }catch(error){this.db.exec('ROLLBACK');throw error;}

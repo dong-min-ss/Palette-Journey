@@ -131,3 +131,9 @@
 - localService=true인 한국어 음성만 사용한다. 없으면 자동 원격 합성으로 전환하지 않고 안내와 답변 원음만 듣기를 제공한다. 첫 질문 speak와 AudioContext.resume은 사용자의 버튼 조작 안에서 시작한다. 중지·화면 이탈·시간 초과·늦은 이벤트를 세대 검사로 차단한다.
 - 오디오 응답에 음성 revision을 포함하고 질문 metadata revision과 일치할 때만 함께 재생하여, 다른 기기의 교체로 질문과 답변이 엇갈리지 않게 한다.
 - 구현 근거: Web Speech API localService/utterance 이벤트 https://webaudio.github.io/web-speech-api/ 및 Web Audio start(offset,duration) https://www.w3.org/TR/webaudio-1.0/ .
+
+## 2026-11-02 — 그림일기에 대화 통합 및 단일 파일 재생으로 수정
+- 사용자는 음성을 별도 콘텐츠가 아니라 완성된 날짜별 그림일기에 붙은 대화 기록으로 정의했다. 음성 일기 탭/답변만 듣기를 없애고 그림 아래 재생 버튼 하나와 접힌 기록 관리로 통합한다. entryDate를 페이지 데이터에 보존하고 기존 데이터는 일기 생성일의 한국 날짜로 표시한다. 구형 Android 클라이언트 저장도 날짜를 지우지 않는다.
+- 실제 iPhone에서 질문만 들린다는 사용자 보고로 브라우저 SpeechSynthesis와 Web Audio 교대 방식을 폐기한다. 해당 기기 원인을 확정한 것은 아니며, [WebKit의 음성 합성과 미디어 간섭 보고](https://bugs.webkit.org/show_bug.cgi?id=218815)와 같은 종류의 전환 자체를 제거한다. 서버에서 한국어 질문 재합성+답변 원음을 하나의 WAV로 준비해 HTMLAudioElement 하나로 재생한다.
+- 설치된 Microsoft System.Speech의 PCM 출력([공식 API](https://learn.microsoft.com/en-us/dotnet/api/system.speech.synthesis.speechsynthesizer.setoutputtoaudiostream)) 사용. 질문은 JSON stdin 데이터로 전달하며 명령/SSML에 삽입하지 않는다. 기존 서명된 시스템 라이브러리만 호출하고 실행 정책/애플리케이션 제어를 변경하지 않는다. 합성은 직렬/최대4대기/30초/출력 크기 제한을 둔다.
+- 질문 RMS에 답변 RMS를 맞추되 질문 gain은 최대0.35로 낮춘다. 답변 원음 자체는 변조하지 않는다. 파생 WAV는 원본 revision에 묶고 생성 중 삭제/만료에도 권한과 revision을 재검사하여 되살리지 않는다. 실제 차량 질문 원음을 저장하는 문제와 현재 재합성 재생 파일은 계속 구분한다.

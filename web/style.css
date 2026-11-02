@@ -40,3 +40,14 @@ body:has(#studio:not([hidden])) #status{position:fixed;left:104px;bottom:2px;mar
 #pair-code{overflow-wrap:anywhere;}
 
 #voice-cues{overflow-wrap:anywhere;white-space:pre-wrap;}
+
+/* Each dated drawing owns its conversation; there is no separate voice destination. */
+.sketch-workspace{display:flex;flex-direction:column;justify-content:flex-start;overflow-y:auto;gap:18px;padding-top:22px}
+.sketch-workspace .canvas{width:min(100%,720px);flex-shrink:0}
+.entry-heading,.entry-conversation{width:min(100%,720px);flex-shrink:0}
+.entry-heading time{font-size:13px;color:#6c7a70}.entry-heading h1{font-size:22px;line-height:1.4;margin:4px 0 0;letter-spacing:-.5px}
+.entry-conversation{padding:22px;background:white;border:1px solid #e6e9e3;border-radius:18px;margin-bottom:20px}
+.conversation-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.conversation-heading h2{font-size:17px;flex:1}.conversation-heading button{font-size:14px;white-space:nowrap}
+.entry-conversation details{margin-top:12px}.entry-conversation summary{cursor:pointer;color:#64756b;font-size:13px}.entry-conversation .voice-actions{margin-top:14px}.entry-conversation #voice-cues{font-size:13px}
+#dated-pages{display:grid;gap:8px;margin:16px 0}#dated-pages button{text-align:left}
+@media(max-width:760px){.sketch-workspace{bottom:155px;padding:16px 12px}.sketch-workspace .canvas{width:100%}.entry-conversation{padding:16px}.entry-heading h1{font-size:18px}.conversation-heading{gap:8px}.conversation-heading h2{flex-basis:100%}}

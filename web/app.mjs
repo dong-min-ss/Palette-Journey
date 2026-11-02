@@ -12,8 +12,9 @@ const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:
   $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
 }});
 const voiceDiary=createVoiceDiary({getPage:()=>currentPage,getToken:()=>token,api});
-function snapshot(){return {title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
+function snapshot(){return {entryDate:$('page-date').value||currentPage.entryDate,title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
 function changed(){
+  renderEntryHeading();
   if(!currentPage){status('먼저 그림일기와 페이지를 추가해주세요.');return;}
   editVersion++;dirty=true;$('save-state').textContent='자동 저장을 기다리고 있어요.';
   if(currentPage){try{localStorage.setItem('pj-draft-'+currentPage.id,JSON.stringify(snapshot()));}catch{status('이 기기의 임시 저장 공간이 부족해요. 서버 저장 상태를 확인해주세요.');}}
@@ -79,7 +80,7 @@ async function load() {
   palette=colors;library=books;renderPalette();renderLibrary();
   const remembered=localStorage.getItem('pj-last-page-'+library.familyId);
   const page=library.pages.find(p=>p.id===currentPage?.id)||library.pages.find(p=>p.id===remembered)||library.pages[0];
-  if(page)await openPage(page.id);else{currentPage=null;strokes=[];legacyRegions={};redraw();}
+  if(page)await openPage(page.id);else{currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
 }
 function renderCatalog(catalog){
@@ -99,17 +100,20 @@ function renderCatalog(catalog){
     card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
   }
 }
-function options(id,rows,value){$(id).replaceChildren(...rows.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.title??row.name;return option;}));if(rows.some(r=>r.id===value))$(id).value=value;}
+function renderEntryHeading(title=$('page-title').value){$('entry-date-display').textContent=$('page-date').value||currentPage?.entryDate||'';$('entry-title-display').textContent=title||'나의 그림일기';}
+function options(id,rows,value){$(id).replaceChildren(...rows.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=(id==='page'&&row.entryDate?row.entryDate+' · ':'')+(row.title??row.name);return option;}));if(rows.some(r=>r.id===value))$(id).value=value;}
 function renderLibrary(){
   const child=$('child').value,trip=$('trip').value,diary=$('diary').value,page=$('page').value;
   options('child',library.children,child);options('trip',library.trips,trip);
   options('diary',library.diaries.filter(d=>d.childId===$('child').value&&d.tripId===$('trip').value),diary);
-  options('page',library.pages.filter(p=>p.diaryId===$('diary').value),page);
+  const entries=library.pages.filter(p=>p.diaryId===$('diary').value).sort((a,b)=>(b.entryDate??'').localeCompare(a.entryDate??'')||a.position-b.position);options('page',entries,page);
+  $('dated-pages').replaceChildren(...entries.map(entry=>{const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=entry.entryDate+' · '+entry.title;button.onclick=()=>busy(button,async()=>{if(await leavePage()){await openPage(entry.id);openMenu(null);}});return button;}));
 }
 async function openPage(id){
   const page=await api('/api/session/pages/'+id);currentPage=page;autoBlocked=false;clearTimeout(saveTimer);
   const diary=library.diaries.find(d=>d.id===page.diaryId);
   $('child').value=diary.childId;$('trip').value=diary.tripId;renderLibrary();$('diary').value=diary.id;renderLibrary();$('page').value=page.id;
+  $('page-date').value=page.entryDate;renderEntryHeading(page.title);
   $('page-title').value=page.title;$('page-text').value=page.text;
   $('page-title').disabled=false;$('page-text').disabled=false;$('save').disabled=false;
   applyArtwork(page);
@@ -132,7 +136,7 @@ async function saveCurrent(){
     const saved=await api('/api/session/pages/'+pageId,'PUT',data);
     if(currentPage?.id!==pageId)return;
     revision=saved.revision;currentPage=saved;dirty=editVersion!==version;
-    const item=library.pages.find(p=>p.id===pageId);if(item)item.title=saved.title;
+    const item=library.pages.find(p=>p.id===pageId);if(item){item.title=saved.title;item.entryDate=saved.entryDate;}
     if(!dirty){localStorage.removeItem('pj-draft-'+pageId);$('save-state').textContent='서버에 저장했어요.';renderLibrary();}
     else{localStorage.setItem('pj-draft-'+pageId,JSON.stringify(snapshot()));clearTimeout(saveTimer);saveTimer=setTimeout(()=>busy($('save'),saveCurrent),1200);}
   }catch(e){if(e.message==='ARTWORK_CONFLICT')autoBlocked=true;$('save-state').textContent='서버 저장에 실패했어요. 이 기기의 임시 기록은 유지됩니다.';throw e;}finally{saving=null;}})();
@@ -147,7 +151,7 @@ for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),as
   if(next)await openPage(next);else{clearPage();status('그림일기와 페이지를 추가해주세요.');}
   }catch(e){restoreSelection();throw e;}
 });
-function clearPage(){voiceDiary.load(null);clearTimeout(saveTimer);currentPage=null;strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
+function clearPage(){voiceDiary.load(null);clearTimeout(saveTimer);currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
 for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
   if(!await leavePage())return;
   const path={child:'children',trip:'trips',diary:'diaries'}[kind];
@@ -160,7 +164,7 @@ $('page-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,asyn
   const page=await api('/api/session/diaries/'+$('diary').value+'/pages','POST',{title:$('new-page-title').value,template:'blank'});
   library=await api('/api/session/library');await openPage(page.id);event.target.reset();status('새 페이지를 만들었어요.');
 });};
-$('page-title').oninput=changed;$('page-text').oninput=changed;
+$('page-date').onchange=changed;$('page-title').oninput=changed;$('page-text').oninput=changed;
 $('join-form').onsubmit = event => {
   event.preventDefault();
   busy($('join'), async()=>{
@@ -231,7 +235,7 @@ function openMenu(name){
   $('menu-drawer').hidden=!name;
   for(const button of document.querySelectorAll('[data-panel]'))button.setAttribute('aria-expanded',String(button.dataset.panel===name));
   for(const panel of document.querySelectorAll('.menu-panel'))panel.hidden=panel.id!=='panel-'+name;
-  if(name){if(name==='voice')voiceDiary.opened();if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
+  if(name){if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
 }
 for(const button of document.querySelectorAll('[data-panel]'))button.onclick=()=>openMenu(openedPanel===button.dataset.panel?null:button.dataset.panel);
 $('close-menu').onclick=()=>{const previous=openedPanel;openMenu(null);document.querySelector('[data-panel="'+previous+'"]').focus();};

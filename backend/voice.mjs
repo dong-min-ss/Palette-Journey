@@ -6,6 +6,7 @@ export class VoiceStore {
     this.db.exec(`CREATE TABLE IF NOT EXISTS page_voice (
       page_id TEXT PRIMARY KEY REFERENCES pages(id), revision INTEGER NOT NULL,
       mime TEXT, audio BLOB, duration INTEGER, cues TEXT);`);
+    this.db.exec('CREATE TABLE IF NOT EXISTS page_conversation (page_id TEXT PRIMARY KEY,voice_revision INTEGER NOT NULL,version INTEGER NOT NULL,audio BLOB NOT NULL)');
     const columns=this.db.prepare('PRAGMA table_info(page_voice)').all().map(c=>c.name);
     for(const [name,type] of [['mode','TEXT'],['upload_id','TEXT'],['upload_hash','TEXT']])if(!columns.includes(name))this.db.exec(`ALTER TABLE page_voice ADD COLUMN ${name} ${type}`);
   }
@@ -47,6 +48,7 @@ export class VoiceStore {
       this.db.prepare(`INSERT INTO page_voice (page_id,revision,mime,audio,duration,cues,mode,upload_id,upload_hash) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(page_id) DO UPDATE SET
         revision=excluded.revision,mime=excluded.mime,audio=excluded.audio,duration=excluded.duration,cues=excluded.cues,mode=excluded.mode,upload_id=excluded.upload_id,upload_hash=excluded.upload_hash`)
         .run(id,current.revision+1,remove?null:body.mime,bytes,remove?null:body.duration,remove?null:JSON.stringify(body.cues),remove?null:vehicle?'vehicle-answer-original':'guided-parent-demo',vehicle?body.uploadId:null,uploadHash);
+      this.db.prepare('DELETE FROM page_conversation WHERE page_id=?').run(id);
       this.db.exec('COMMIT');return this.get(token,id);
     }catch(error){this.db.exec('ROLLBACK');throw error;}
   }
