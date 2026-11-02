@@ -274,3 +274,9 @@
 - 첫 화면의 웹·휴대폰 연결을 가족 연결로 변경. 실제 진입 경로는 가족 연결 → 위치·속도·기어 API 진단 → GPS 보상 시연 시작·중지로 통일한다.
 - 세 버튼 문구를 Android strings.xml에서 관리하고 README/위치 시연 안내도 같은 명칭으로 갱신했다. 동작은 변경하지 않았다.
 - gradlew.bat :app:assembleDebug 성공. 에뮬레이터 데이터 보존 설치 및 MainActivity 실행 성공.
+
+## 2026-11-02 — 에뮬레이터 진단 화면 주행 가림 임시 해제
+- 사용자가 실시간 속도/기어 확인을 위해 주행 가림 해제를 요청했다. debug 전용 Manifest에서 VehicleSignalsActivity에만 distractionOptimized를 선언했다. 첫 화면/가족 연결/그림/음성 화면과 release Manifest는 변경하지 않는다.
+- 진단 Activity는 DEBUG+에뮬레이터가 아니면 안내만 표시하고 수신/조작을 시작하지 않는다. 실제 차량 주행용 승인이나 동승자 식별로 간주하지 않는다.
+- 속도/기어 이력은 이번 요구인 실시간 확인에 필수가 아니어서 추가하지 않았다. 향후 수신 누락/변경 순서/화면 종료 전후 분석이 필요할 때 제한된 기록을 추가한다.
+- 검증: gradlew.bat :app:assembleDebug :app:processReleaseMainManifest 성공. 병합 debug에 임시 metadata 존재, release에는 없음 확인. adb install -r 데이터 보존 설치 성공. 실제 D 전환 화면 확인은 사용자 재시험 필요.

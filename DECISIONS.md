@@ -152,3 +152,7 @@
 - 에뮬레이터 SDK 좌표를 받는 엔드포인트는 서버 시각으로 체류를 계산한다. client 시각을 가속 재생하는 기존 mock 경로와 진행 키를 분리하여 미래 표본에 의한 실시간 입력 무시를 막는다.
 - 시연 SDK 시각은 서버와30초 이내/미래5초 이내일 때만 위치를 인정한다. 좌표 없음과 중지는 이탈로 처리한다. 같은 가족의 simulation 영수증은 공용이며 실제 방문 인증으로 승격하지 않는다. source 문자열만으로 기기 진위를 보증하지 않는다.
 - 기어/속도는 이번 단계에서 상태 전이를 읽어 검증했으나 방문 보상 조건에 추가하지 않는다. 운전자 조작 잠금도 해제하지 않는다. 공식 Virtual Console로 시뮬레이션하고 테스트 뒤 P/0으로 복원한다.
+
+## 2026-11-02 — 임시 진단 표시 예외
+- 사용자 요청으로 개발용 에뮬레이터 VehicleSignalsActivity만 debug Manifest의 distractionOptimized=true를 사용해 가림 없이 실시간 상태를 보도록 한다. 이 선언은 배포/실차 주행용 적합성 선언이 아니며 release에는 포함하지 않는다. debug 실기기에서도 Activity 수신/조작은 차단한다.
+- 공식 메커니즘: https://source.android.com/docs/automotive/driver_distraction/guidelines . 원복은 android/app/src/debug/AndroidManifest.xml의 해당 metadata 제거로 한다. 플랫폼 전체의 제한은 변경하지 않는다.

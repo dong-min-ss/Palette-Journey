@@ -26,7 +26,9 @@ public class VehicleSignalsActivity extends Activity {
         public void onChanged(LocationData data){handler.post(()->{latest=data;locationState=data==null?"위치 없음":String.format(java.util.Locale.ROOT,"위도 %.6f / 경도 %.6f\nSDK 시각 %d / confidence %.2f",data.getLatitude(),data.getLongitude(),data.getTimestampMillis(),data.getConfidence());render();});}
         public void onError(Exception e){handler.post(()->{latest=null;locationState="위치 오류: "+e.getClass().getSimpleName();render();});}
     };
-    @Override public void onCreate(Bundle state){super.onCreate(state);view=new TextView(this);view.setPadding(32,32,32,32);view.setTextSize(22);android.widget.LinearLayout root=new android.widget.LinearLayout(this);root.setOrientation(android.widget.LinearLayout.VERTICAL);root.addView(view);
+    @Override public void onCreate(Bundle state){super.onCreate(state);view=new TextView(this);view.setPadding(32,32,32,32);view.setTextSize(22);
+        if(!BuildConfig.DEBUG||!(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish"))){view.setText("이 진단 화면은 개발용 에뮬레이터에서만 사용할 수 있어요.");setContentView(view);return;}
+        android.widget.LinearLayout root=new android.widget.LinearLayout(this);root.setOrientation(android.widget.LinearLayout.VERTICAL);root.addView(view);
         android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);root.addView(toggle);setContentView(root);
         boolean emulator=BuildConfig.DEBUG&&(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish"));toggle.setEnabled(emulator);
         toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"가족 연결 확인 후 GPS 보상 시연 중":"GPS 보상 시연 중지됨";if(!collect)worker.execute(()->sendReset());render();});
@@ -35,7 +37,7 @@ public class VehicleSignalsActivity extends Activity {
         if(!needed.isEmpty())requestPermissions(needed.toArray(new String[0]),71);
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){super.onRequestPermissionsResult(request,permissions,grants);if(request==71&&active){stopLocation();startLocation();}}
-    @Override public void onStart(){super.onStart();active=true;render();startLocation();handler.post(poll);}
+    @Override public void onStart(){super.onStart();if(!BuildConfig.DEBUG||!(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish")))return;active=true;render();startLocation();handler.post(poll);}
     private void startLocation(){try{location=new FusedLocation(this);if(location.isSupported()){location.initialize();location.registerFusedLocationCallback(listener);location.getLastKnownLocation(listener);}else locationState="FusedLocation 미지원";}catch(Exception e){locationState="위치 초기화 실패: "+e.getClass().getSimpleName();}render();}
     private void stopLocation(){if(location!=null){try{location.unregisterFusedLocationCallback(listener);location.release();}catch(Exception ignored){}location=null;}}
     private void sendReset(){if(participant!=null)try{VehicleApi.request("/api/session/visits/vehicle","POST",new org.json.JSONObject().put("source","pleos-emulator").put("valid",false),participant);}catch(Exception ignored){}}
