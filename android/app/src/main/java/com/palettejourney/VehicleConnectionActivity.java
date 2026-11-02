@@ -32,6 +32,8 @@ public class VehicleConnectionActivity extends Activity {
         code=new EditText(this);code.setHint("기존 웹의 24자리 연결 코드");code.setSingleLine(true);root.addView(code);
         button("기존 웹 가족에 연결",()->{String input=codeInput.trim().toLowerCase(java.util.Locale.ROOT);if(!input.matches("[a-f0-9]{24}"))throw new Exception();String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",input),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
         button("차량 가족 연결 시작·재연결",()->{String owner=VehicleApi.load(this,"owner");if(owner==null){owner=VehicleApi.randomToken();VehicleApi.save(this,"owner",owner);}VehicleApi.request("/api/account","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
+        button("새 시연 가족 · 경주 잠금 상태",()->{String owner=VehicleApi.randomToken();VehicleApi.request("/api/account/demo","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String member=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),member);VehicleApi.saveDemo(this,member);token=member;clearPairing();loadLibrary();});
+        button("기존 가족으로 돌아가기",()->{VehicleApi.useDemo(this,false);clearPairing();token=VehicleApi.load(this);if(token==null){handler.post(()->{status.setText("기존 연결이 없어요. 가족 연결 코드를 입력해주세요.");rewards.setText("");pageList=new JSONArray();pages.setAdapter(DevUi.spinner(this,new String[]{}));});return;}loadLibrary();});
         rewards=new TextView(this);root.addView(rewards);
         button(getString(R.string.vehicle_signals),()->handler.post(()->startActivity(new android.content.Intent(this,VehicleSignalsActivity.class))));
         pages=new Spinner(this);root.addView(pages);
@@ -43,10 +45,11 @@ public class VehicleConnectionActivity extends Activity {
         try{token=VehicleApi.load(this);}catch(Exception ignored){status.setText("저장한 연결을 열 수 없어요. 새 코드로 다시 연결해주세요.");}
         if(token!=null)run(this::loadLibrary);
     }
+    private void clearPairing(){handler.post(()->{qrGeneration++;qr.setImageDrawable(null);codeLabel.setText("가족이 변경됐어요. QR을 다시 발급해주세요.");});}
     private void requireToken()throws Exception{if(token==null)throw new Exception();}
     private void refreshRewards()throws Exception{
         JSONObject palette=VehicleApi.request("/api/session/palette","GET",null,token),catalog=VehicleApi.request("/api/session/catalog","GET",null,token);
-        StringBuilder text=new StringBuilder("가족 공유 팔레트 · ");JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");text.append(colors.length()).append("색\n");
+        StringBuilder text=new StringBuilder(VehicleApi.isDemo(this)?"시연 가족 · 개발용 해금 제외\n가족 공유 팔레트 · ":"기존 가족\n가족 공유 팔레트 · ");JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");text.append(colors.length()).append("색\n");
         for(int i=0;i<colors.length();i++){JSONObject c=colors.getJSONObject(i);if("region".equals(c.optString("source")))text.append(c.optString("name")).append(" ").append(c.optString("hex")).append("\n");}
         for(int i=0;i<stickers.length();i++){JSONObject item=stickers.getJSONObject(i);if("regional".equals(item.optString("kind"))&&item.optBoolean("unlocked"))text.append(item.getString("name")).append(item.optBoolean("developmentUnlocked")?" · 개발용":" · 모의 방문 보상").append("\n");}
         text.append("시뮬레이션 보상 · 실제 방문 인증 아님");String value=text.toString();handler.post(()->{if(!isDestroyed())rewards.setText(value);});

@@ -61,7 +61,7 @@ export function createApp(store,options={}) {
       else if(req.method==='GET'&&req.url==='/api/session/visits')result=visits.state(token);
       else if(req.method==='POST'&&req.url==='/api/session/visits/vehicle')result=visits.vehicle(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/visits/mock')result=visits.sample(token,await readJson(req));
-      else if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickerAccess===true);
+      else if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickers(token));
       else if(req.method==='GET'&&req.url==='/api/session/library')result=diaries.library(token);
       else if(req.method==='POST'&&req.url==='/api/session/children')result=diaries.createChild(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/trips')result=diaries.createTrip(token,await readJson(req));
@@ -69,6 +69,7 @@ export function createApp(store,options={}) {
       else if(req.method==='POST'&&/^\/api\/session\/diaries\/[^/]+\/pages$/.test(req.url))result=diaries.createPage(token,req.url.split('/')[4],await readJson(req));
       else if(req.method==='GET'&&/^\/api\/session\/pages\/[^/]+$/.test(req.url))result=diaries.page(token,req.url.split('/')[4]);
       else if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+$/.test(req.url))result=diaries.savePage(token,req.url.split('/')[4],await readJson(req));
+      else if(req.method==='PUT'&&req.url==='/api/account/demo')result=store.registerDemo(token);
       else if (req.method === 'PUT' && req.url === '/api/account') result = store.register(token);
       else if (req.method === 'POST' && req.url === '/api/sessions') result = store.createSession(token);
       else if (req.method === 'POST' && req.url === '/api/sessions/join') {
@@ -94,7 +95,7 @@ export function createApp(store,options={}) {
       } else { res.statusCode = 404; res.end(JSON.stringify({ error: 'NOT_FOUND' })); return; }
       res.end(JSON.stringify(result));
     } catch (error) {
-      const codes = { SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
+      const codes = { INVALID_DEMO_ACCOUNT:409, SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
         INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400 };
       res.statusCode = codes[error.message] ?? 500;

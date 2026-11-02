@@ -12,6 +12,7 @@ export class AccountStore {
     this.now = now;
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS demo_accounts (owner_hash TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS accounts (
         token_hash TEXT PRIMARY KEY, palette TEXT NOT NULL
       );
@@ -33,6 +34,18 @@ export class AccountStore {
     this.db.prepare('INSERT OR IGNORE INTO accounts VALUES (?, ?)')
       .run(key, JSON.stringify(createPalette()));
     return this.get(token);
+  }
+  registerDemo(token) {
+    if(this.mockLocationAccess!==true)throw new Error('SIMULATION_DISABLED');
+    const key=accountKey(token);
+    if(this.db.prepare('SELECT 1 FROM participants WHERE token_hash=?').get(key))throw new Error('INVALID_DEMO_ACCOUNT');
+    const existing=this.db.prepare('SELECT 1 FROM accounts WHERE token_hash=?').get(key);
+    if(existing&&!this.db.prepare('SELECT 1 FROM demo_accounts WHERE owner_hash=?').get(key))throw new Error('INVALID_DEMO_ACCOUNT');
+    this.register(token);this.db.prepare('INSERT OR IGNORE INTO demo_accounts VALUES (?)').run(key);return {demo:true};
+  }
+  developmentStickers(token) {
+    const owner=this.participantOwner(token);
+    return this.developmentStickerAccess===true&&!this.db.prepare('SELECT 1 FROM demo_accounts WHERE owner_hash=?').get(owner);
   }
   get(token) {
     return this.getByKey(accountKey(token));

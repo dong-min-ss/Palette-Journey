@@ -61,3 +61,19 @@ test('vehicle samples use server time, isolate accelerated routes and reset stal
   assert.throws(()=>v.vehicle(member,{...position(),latitude:NaN}),/INVALID_LOCATION/);
  }finally{a.close();}
 });
+
+test('fresh demo family starts locked despite development access and never changes existing families',()=>{
+ const {a,member,v}=setup();const demoOwner=token(),demoMember=token();a.developmentStickerAccess=true;
+ try{
+  assert.equal(ownedStickers(a,member).length,4);
+  assert.throws(()=>a.registerDemo(member),/INVALID_DEMO_ACCOUNT|UNAUTHORIZED/); // participant is not an owner account
+  a.registerDemo(demoOwner);a.registerDemo(demoOwner);a.joinSession(demoMember,a.createSession(demoOwner).code);
+  assert.equal(a.developmentStickers(demoMember),false);assert.equal(ownedStickers(a,demoMember).length,2);
+  assert.equal(a.sessionPalette(demoMember).colors.length,11);assert.equal(v.state(demoMember).rewards.length,0);
+  for(let t=0;t<=120000;t+=15000)v.sample(demoMember,sample(t));
+  assert.equal(ownedStickers(a,demoMember).length,4);assert.equal(a.sessionPalette(demoMember).colors.length,14);
+  assert.equal(a.sessionPalette(member).colors.length,11);assert.equal(v.state(member).rewards.length,0);assert.equal(a.developmentStickers(member),true);
+  const realOwner=token();a.register(realOwner);assert.throws(()=>a.registerDemo(realOwner),/INVALID_DEMO_ACCOUNT/);
+  a.mockLocationAccess=false;assert.throws(()=>a.registerDemo(token()),/SIMULATION_DISABLED/);
+ }finally{a.close();}
+});

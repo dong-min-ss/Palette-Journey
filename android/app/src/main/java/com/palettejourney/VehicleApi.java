@@ -36,13 +36,16 @@ final class VehicleApi {
         KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
         generator.init(new KeyGenParameterSpec.Builder(alias,KeyProperties.PURPOSE_ENCRYPT|KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());return generator.generateKey();
     }
-    static void save(Context context,String token)throws Exception{save(context,"participant",token);}
+    static void save(Context context,String token)throws Exception{save(context,"participant",token);useDemo(context,false);}
     static void save(Context context,String name,String token)throws Exception{
         Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.ENCRYPT_MODE,key());
         String stored=Base64.encodeToString(cipher.getIV(),Base64.NO_WRAP)+":"+Base64.encodeToString(cipher.doFinal(token.getBytes(StandardCharsets.UTF_8)),Base64.NO_WRAP);
         if(!context.getSharedPreferences("connection",0).edit().putString(name,stored).commit())throw new java.io.IOException("STORAGE_FAILED");
     }
-    static String load(Context context)throws Exception{return load(context,"participant");}
+    static boolean isDemo(Context c){return c.getSharedPreferences("connection",0).getBoolean("demoActive",false);}
+    static void useDemo(Context c,boolean enabled)throws Exception{if(!c.getSharedPreferences("connection",0).edit().putBoolean("demoActive",enabled).commit())throw new java.io.IOException("STORAGE_FAILED");}
+    static void saveDemo(Context c,String token)throws Exception{save(c,"demo-participant",token);useDemo(c,true);}
+    static String load(Context context)throws Exception{return load(context,isDemo(context)?"demo-participant":"participant");}
     static String load(Context context,String name)throws Exception{
         String stored=context.getSharedPreferences("connection",0).getString(name,null);if(stored==null)return null;
         String[] parts=stored.split(":");Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.DECRYPT_MODE,key(),new GCMParameterSpec(128,Base64.decode(parts[0],Base64.NO_WRAP)));

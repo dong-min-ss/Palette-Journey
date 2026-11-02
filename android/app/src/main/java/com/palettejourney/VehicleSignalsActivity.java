@@ -17,11 +17,13 @@ import java.util.concurrent.ExecutorService;
 public class VehicleSignalsActivity extends Activity {
     private final Handler handler=new Handler();
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    private final ExecutorService network=Executors.newSingleThreadExecutor();
+    private volatile boolean networkBusy=false;
     private FusedLocation location; private Car car; private CarPropertyManager properties;
     private volatile Float vehicleSpeed=null; private volatile Integer vehicleGear=null; private volatile long signalAt=0; private volatile int signalCount=0; private TextView view;
-    private TextView speedValue,gearValue,gpsValue,rewardValue,detailValue;
+    private TextView speedValue,gearValue,gpsValue,rewardValue,detailValue,assetValue;
     private volatile boolean active=false;
-    private boolean collect=false; private volatile String participant=null; private LocationData latest=null; private long lastSent=0; private String rewardState="GPS 보상 시연 중지됨";
+    private boolean collect=false; private volatile String participant=null; private LocationData latest=null; private long lastSent=0,lastCatalog=0; private String rewardState="GPS 보상 시연 중지됨";
     private String locationState="위치 수신 대기",motionState="차량 상태 수신 대기";
     private void render(){if(!active||speedValue==null)return;
         Float speed=vehicleSpeed;Integer gear=vehicleGear;
@@ -48,9 +50,9 @@ public class VehicleSignalsActivity extends Activity {
         android.widget.LinearLayout gearCard=card(metrics,"기어 · P / R / N / D");android.widget.LinearLayout.LayoutParams b=new android.widget.LinearLayout.LayoutParams(0,-2,1);b.setMargins(DevUi.dp(this,8),DevUi.dp(this,12),0,DevUi.dp(this,16));gearCard.setLayoutParams(b);
         gearValue=DevUi.text(this,"—",56);gearValue.setTag("gear-value");gearValue.setTypeface(null,1);gearCard.addView(gearValue);
         android.widget.LinearLayout gps=card(root,"GPS 좌표");gpsValue=DevUi.text(this,"위치 수신 대기",26);gps.addView(gpsValue);
-        android.widget.LinearLayout reward=card(root,"경주 방문 보상");rewardValue=DevUi.text(this,rewardState,24);reward.addView(rewardValue);reward.addView(DevUi.text(this,"시연 구역 120초 체류 · 실제 방문 인증 아님",20));
+        android.widget.LinearLayout reward=card(root,"경주 방문 보상");assetValue=DevUi.text(this,"보유 콘텐츠 확인 중",22);assetValue.setTag("reward-assets");reward.addView(assetValue);rewardValue=DevUi.text(this,rewardState,24);reward.addView(rewardValue);reward.addView(DevUi.text(this,"시연 구역 120초 체류 · 실제 방문 인증 아님",20));
         android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);DevUi.button(toggle);reward.addView(toggle,new android.widget.LinearLayout.LayoutParams(-1,-2));
-        toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"GPS 보상 시연 진행 중":"GPS 보상 시연 중지됨";if(!collect)worker.execute(()->sendReset());render();});
+        toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"GPS 보상 시연 진행 중":"GPS 보상 시연 중지됨";if(!collect)network.execute(()->sendReset());render();});
         android.widget.Button details=new android.widget.Button(this);details.setText("SDK·수신 상세 펼치기");DevUi.button(details);root.addView(details);
         detailValue=DevUi.text(this,"수신 대기",20);detailValue.setTypeface(android.graphics.Typeface.MONOSPACE);detailValue.setVisibility(android.view.View.GONE);root.addView(detailValue);
         details.setOnClickListener(v->{boolean open=detailValue.getVisibility()!=android.view.View.VISIBLE;detailValue.setVisibility(open?android.view.View.VISIBLE:android.view.View.GONE);details.setText(open?"SDK·수신 상세 접기":"SDK·수신 상세 펼치기");});
@@ -70,6 +72,14 @@ public class VehicleSignalsActivity extends Activity {
     @Override public void onStart(){super.onStart();if(!BuildConfig.DEBUG||!(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish")))return;active=true;render();startLocation();handler.post(poll);}
     private void startLocation(){try{location=new FusedLocation(this);if(location.isSupported()){location.initialize();location.registerFusedLocationCallback(listener);location.getLastKnownLocation(listener);}else locationState="FusedLocation 미지원";}catch(Exception e){locationState="위치 초기화 실패: "+e.getClass().getSimpleName();}render();}
     private void stopLocation(){if(location!=null){try{location.unregisterFusedLocationCallback(listener);location.release();}catch(Exception ignored){}location=null;}}
+    private void refreshAssets(){try{
+        if(participant==null)participant=VehicleApi.load(this);if(participant==null)throw new IllegalStateException();
+        org.json.JSONObject catalog=VehicleApi.request("/api/session/catalog","GET",null,participant);
+        StringBuilder list=new StringBuilder();int colors=0,stickers=0;
+        for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!"gyeongju".equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(owned){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(owned?(item.optBoolean("developmentUnlocked")?" · 개발용 해금":" · 해금됨"):" · 잠김").append("\n");}}
+        String value="경주 색 "+colors+"/3 · 스티커 "+stickers+"/2\n"+list;
+        handler.post(()->{if(active)assetValue.setText(value);});
+    }catch(Exception e){handler.post(()->{if(active)assetValue.setText("가족 연결/서버를 확인해주세요.");});}}
     private void sendReset(){if(participant!=null)try{VehicleApi.request("/api/session/visits/vehicle","POST",new org.json.JSONObject().put("source","pleos-emulator").put("valid",false),participant);}catch(Exception ignored){}}
     private final CarPropertyManager.CarPropertyEventCallback signalListener=new CarPropertyManager.CarPropertyEventCallback(){
         public void onChangeEvent(android.car.hardware.CarPropertyValue value){
@@ -81,19 +91,21 @@ public class VehicleSignalsActivity extends Activity {
         public void onErrorEvent(int propertyId,int areaId){if(propertyId==VehiclePropertyIds.PERF_VEHICLE_SPEED)vehicleSpeed=null;if(propertyId==VehiclePropertyIds.GEAR_SELECTION)vehicleGear=null;}
     };
     private final Runnable poll=new Runnable(){public void run(){if(!active)return;
+        final boolean refresh=android.os.SystemClock.elapsedRealtime()-lastCatalog>=5000;if(refresh)lastCatalog=android.os.SystemClock.elapsedRealtime();
         final boolean sending=collect&&android.os.SystemClock.elapsedRealtime()-lastSent>=5000;
         final LocationData sample=latest;
         if(sending)lastSent=android.os.SystemClock.elapsedRealtime();
-        worker.execute(()->{String value;try{if(car==null){car=Car.createCar(VehicleSignalsActivity.this);properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);
-            if(!properties.registerCallback(signalListener,VehiclePropertyIds.PERF_VEHICLE_SPEED,CarPropertyManager.SENSOR_RATE_ONCHANGE)||!properties.registerCallback(signalListener,VehiclePropertyIds.GEAR_SELECTION,CarPropertyManager.SENSOR_RATE_ONCHANGE))throw new IllegalStateException("SIGNAL_SUBSCRIPTION_FAILED");}
-            value="차량 속도 "+(vehicleSpeed==null?"수신 대기":vehicleSpeed)+" m/s / 기어 값 "+(vehicleGear==null?"수신 대기":vehicleGear)+"\n변경 이벤트 "+signalCount+"회 · 마지막 수신 "+(signalAt==0?"없음":(android.os.SystemClock.elapsedRealtime()-signalAt)/1000+"초 전")+"\n정차 허용 판정 미적용";}catch(Exception e){value="속도·기어 조회 실패: "+e.getClass().getSimpleName()+" · 상태 미확인";}if(sending){try{if(participant==null)participant=VehicleApi.load(VehicleSignalsActivity.this);if(participant==null)throw new IllegalStateException();
+        if((sending||refresh)&&!networkBusy){networkBusy=true;network.execute(()->{try{if(sending){try{if(participant==null)participant=VehicleApi.load(VehicleSignalsActivity.this);if(participant==null)throw new IllegalStateException();
             org.json.JSONObject body=new org.json.JSONObject().put("source","pleos-emulator").put("valid",sample!=null);
             if(sample!=null)body.put("latitude",sample.getLatitude()).put("longitude",sample.getLongitude()).put("measuredAt",sample.getTimestampMillis());
             org.json.JSONObject result=VehicleApi.request("/api/session/visits/vehicle","POST",body,participant);
             String message=result.getJSONArray("rewards").length()>0?"경주 모의 방문 보상 지급 완료 · 색3개/스티커2개":result.optBoolean("locationFresh")?"경주 시연 구역 체류 "+result.optLong("dwellMs")/1000+" / 120초":"위치 없음·오래된 위치: 체류 초기화";
             handler.post(()->{if(active){rewardState=message;render();}});
         }catch(Exception e){handler.post(()->{if(active){rewardState="전송 실패 · 가족 연결/서버/시연 설정을 확인해주세요.";render();}});}}
-        String result=value;handler.post(()->{if(active){motionState=result;render();handler.postDelayed(this,1000);}});});}};
-    @Override public void onStop(){active=false;handler.removeCallbacks(poll);stopLocation();latest=null;collect=false;worker.execute(()->{sendReset();if(properties!=null){properties.unregisterCallback(signalListener);properties=null;}if(car!=null){car.disconnect();car=null;}vehicleSpeed=null;vehicleGear=null;});super.onStop();}
-    @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);worker.shutdown();super.onDestroy();}
+        if(refresh||sending)refreshAssets();}finally{networkBusy=false;}});}
+        worker.execute(()->{String value;try{if(car==null){car=Car.createCar(VehicleSignalsActivity.this);properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);
+            if(!properties.registerCallback(signalListener,VehiclePropertyIds.PERF_VEHICLE_SPEED,CarPropertyManager.SENSOR_RATE_ONCHANGE)||!properties.registerCallback(signalListener,VehiclePropertyIds.GEAR_SELECTION,CarPropertyManager.SENSOR_RATE_ONCHANGE))throw new IllegalStateException("SIGNAL_SUBSCRIPTION_FAILED");}
+            value="차량 속도 "+(vehicleSpeed==null?"수신 대기":vehicleSpeed)+" m/s / 기어 값 "+(vehicleGear==null?"수신 대기":vehicleGear)+"\n변경 이벤트 "+signalCount+"회 · 마지막 수신 "+(signalAt==0?"없음":(android.os.SystemClock.elapsedRealtime()-signalAt)/1000+"초 전")+"\n정차 허용 판정 미적용";}catch(Exception e){value="속도·기어 조회 실패: "+e.getClass().getSimpleName()+" · 상태 미확인";}String result=value;handler.post(()->{if(active){motionState=result;render();handler.postDelayed(this,1000);}});});}};
+    @Override public void onStop(){active=false;handler.removeCallbacks(poll);stopLocation();latest=null;collect=false;network.execute(()->sendReset());worker.execute(()->{if(properties!=null){properties.unregisterCallback(signalListener);properties=null;}if(car!=null){car.disconnect();car=null;}vehicleSpeed=null;vehicleGear=null;});super.onStop();}
+    @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);worker.shutdown();network.shutdown();super.onDestroy();}
 }
