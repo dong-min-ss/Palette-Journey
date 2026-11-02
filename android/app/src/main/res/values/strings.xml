@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">PaletteJourney</string>
+    <string name="family_connection">가족 연결</string>
+    <string name="vehicle_signals">위치·속도·기어 API 진단</string>
+    <string name="gps_reward_simulation">GPS 보상 시연 시작·중지</string>
 </resources>

@@ -269,3 +269,8 @@
 - 공식 Virtual Console 포트8088 연결. 일반 ADB 기어 주입은 P 유지/실패했고 non-user build 요구 확인. 공식 화면 D 전환 후 API D=8 읽기 성공, 가속을 유지하는 동안 속도>=1m/s 확인. P/0으로 복원 후 P=4 읽기 성공. GPS emu geo fix로 밖37.0→안35.8347 이동 좌표 수신 확인. 각 기기 테스트1개 실제 통과.
 - npm.cmd run check 49/49, Gradle assembleDebug/testDebugUnitTest 성공(기존18개). 새 GpsVisitDeviceTest 실제1개 통과: SDK GPS를 서버에 실시간 전송→120초 체류→가족 다른 접속 색14개/지역스티커2개 확인. XML time=123.580, failures=0/errors=0.10초마다 경주 GPS 갱신한 호스트 시험 루프 종료. 합성 시험 가족 세션 취소, 기존 개인 기기 자격증명 변경 없음.
 - 실제 개발 서버 재시작으로 새 엔드포인트 적용. 새 APK가 에뮬레이터에 설치된 상태. 실제 휴대폰은 동일 Wi-Fi 사용 가능 시 화면 검증 필요. 실차 신뢰/위치 confidence 정책/실제 경계/운영 체류/CarUxRestrictions는 후속이다.
+
+## 2026-11-02 — 테스트 안내와 버튼 명칭 통일
+- 첫 화면의 웹·휴대폰 연결을 가족 연결로 변경. 실제 진입 경로는 가족 연결 → 위치·속도·기어 API 진단 → GPS 보상 시연 시작·중지로 통일한다.
+- 세 버튼 문구를 Android strings.xml에서 관리하고 README/위치 시연 안내도 같은 명칭으로 갱신했다. 동작은 변경하지 않았다.
+- gradlew.bat :app:assembleDebug 성공. 에뮬레이터 데이터 보존 설치 및 MainActivity 실행 성공.

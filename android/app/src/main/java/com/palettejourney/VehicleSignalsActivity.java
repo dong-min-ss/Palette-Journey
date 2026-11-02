@@ -27,7 +27,7 @@ public class VehicleSignalsActivity extends Activity {
         public void onError(Exception e){handler.post(()->{latest=null;locationState="위치 오류: "+e.getClass().getSimpleName();render();});}
     };
     @Override public void onCreate(Bundle state){super.onCreate(state);view=new TextView(this);view.setPadding(32,32,32,32);view.setTextSize(22);android.widget.LinearLayout root=new android.widget.LinearLayout(this);root.setOrientation(android.widget.LinearLayout.VERTICAL);root.addView(view);
-        android.widget.Button toggle=new android.widget.Button(this);toggle.setText("GPS 보상 시연 시작·중지");root.addView(toggle);setContentView(root);
+        android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);root.addView(toggle);setContentView(root);
         boolean emulator=BuildConfig.DEBUG&&(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish"));toggle.setEnabled(emulator);
         toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"가족 연결 확인 후 GPS 보상 시연 중":"GPS 보상 시연 중지됨";if(!collect)worker.execute(()->sendReset());render();});
         java.util.ArrayList<String> needed=new java.util.ArrayList<>();
