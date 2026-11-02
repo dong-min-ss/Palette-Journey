@@ -32,7 +32,7 @@ test('HTTP accepts four full original answers, serves authorized WAV bytes and r
  const {store,owner,member,session,page}=setup(),server=createApp(store);await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
  try{const value=body(120000);value.cues=Array.from({length:4},(_,i)=>({question:i,at:i*30000,questionText:'시험 질문',answerText:'합성 답변',skipped:false}));const headers={Authorization:'Bearer '+member,'Content-Type':'application/json'};const put=()=>fetch(base+'/api/session/pages/'+page+'/voice/vehicle',{method:'PUT',headers,body:JSON.stringify(value)});
  assert.equal((await put()).status,200);assert.equal((await(await put()).json()).revision,1);
- const audio=await fetch(base+'/api/session/pages/'+page+'/voice/audio',{headers});assert.equal(audio.headers.get('content-type'),'audio/wav');assert.deepEqual(Buffer.from(await audio.arrayBuffer()),wav(120000));
+ const audio=await fetch(base+'/api/session/pages/'+page+'/voice/audio',{headers});assert.equal(audio.headers.get('content-type'),'audio/wav');assert.equal(audio.headers.get('x-voice-revision'),'1');assert.deepEqual(Buffer.from(await audio.arrayBuffer()),wav(120000));
  assert.equal((await fetch(base+'/api/session/pages/'+page+'/voice/audio',{headers:{Authorization:'Bearer '+token()}})).status,401);
  store.revokeSession(owner,session.id);assert.equal((await put()).status,401);
  }finally{await new Promise(r=>server.close(r));store.close();}

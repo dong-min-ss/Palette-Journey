@@ -16,7 +16,7 @@ export class VoiceStore {
   }
   audio(token,id) {
     this.diaries.page(token,id);
-    const row=this.db.prepare('SELECT mime,audio FROM page_voice WHERE page_id=?').get(id);
+    const row=this.db.prepare('SELECT revision,mime,audio FROM page_voice WHERE page_id=?').get(id);
     if(!row?.mime)throw new Error('VOICE_NOT_FOUND');return row;
   }
   write(token,id,body,remove=false,vehicle=false) {

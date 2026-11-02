@@ -30,6 +30,7 @@ export function createApp(store) {
     try {
       const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
       for(const file of ['star','heart','cheomseongdae','silla-crown'])for(const suffix of ['', '-outline'])assets[`/assets/stickers/${file}${suffix}.svg`]=[`assets/stickers/${file}${suffix}.svg`,'image/svg+xml'];
+      assets['/conversation-playback.mjs']=['conversation-playback.mjs','text/javascript; charset=utf-8'];
       assets['/voice.mjs']=['voice.mjs','text/javascript; charset=utf-8'];
       assets['/stickers.mjs']=['stickers.mjs','text/javascript; charset=utf-8'];
       if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
@@ -46,7 +47,7 @@ export function createApp(store) {
       if(req.method==='PUT'&&/^\/api\/session\/pages\/[^/]+\/voice\/vehicle$/.test(req.url)){result=voice.write(token,req.url.split('/')[4],await readJson(req),false,true);}
       else if(/^\/api\/session\/pages\/[^/]+\/voice(?:\/audio)?$/.test(req.url)){
         const id=req.url.split('/')[4];
-        if(req.method==='GET'&&req.url.endsWith('/audio')){const data=voice.audio(token,id);res.setHeader('Content-Type',data.mime);res.end(data.audio);return;}
+        if(req.method==='GET'&&req.url.endsWith('/audio')){const data=voice.audio(token,id);res.setHeader('Content-Type',data.mime);res.setHeader('X-Voice-Revision',String(data.revision));res.end(data.audio);return;}
         if(req.method==='GET')result=voice.get(token,id);
         else if((req.method==='PUT'||req.method==='DELETE')&&!req.url.endsWith('/audio'))result=voice.write(token,id,await readJson(req),req.method==='DELETE');
         else{res.statusCode=405;res.end(JSON.stringify({error:'METHOD_NOT_ALLOWED'}));return;}
