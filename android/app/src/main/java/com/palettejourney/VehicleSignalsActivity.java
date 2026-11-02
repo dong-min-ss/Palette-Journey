@@ -19,20 +19,49 @@ public class VehicleSignalsActivity extends Activity {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private FusedLocation location; private Car car; private CarPropertyManager properties;
     private volatile Float vehicleSpeed=null; private volatile Integer vehicleGear=null; private volatile long signalAt=0; private volatile int signalCount=0; private TextView view;
+    private TextView speedValue,gearValue,gpsValue,rewardValue,detailValue;
     private volatile boolean active=false;
     private boolean collect=false; private volatile String participant=null; private LocationData latest=null; private long lastSent=0; private String rewardState="GPS 보상 시연 중지됨";
     private String locationState="위치 수신 대기",motionState="차량 상태 수신 대기";
-    private void render(){if(active)view.setText("차량 API 읽기 진단 · 에뮬레이터는 시뮬레이션\n\n"+locationState+"\n\n"+motionState+"\n\n"+rewardState+"\n시연 구역 2분 체류 · 실제 방문 인증 아님\n운전자 조작 허용에 사용하지 않아요.");}
+    private void render(){if(!active||speedValue==null)return;
+        Float speed=vehicleSpeed;Integer gear=vehicleGear;
+        speedValue.setText(speed==null?"—":String.format(java.util.Locale.ROOT,"%.1f",Math.abs(speed)*3.6f));
+        String name=gear==null?"—":gear==4?"P":gear==8?"D":gear==2?"R":gear==1?"N":"?";
+        gearValue.setText(name+(gear==null?"":" · "+gear));
+        gpsValue.setText(latest==null?locationState:String.format(java.util.Locale.ROOT,"위도 %.6f    경도 %.6f",latest.getLatitude(),latest.getLongitude()));
+        rewardValue.setText(rewardState);
+        detailValue.setText(motionState+"\n\n"+locationState+"\n좌표·속도·기어는 에뮬레이터 입력입니다.");
+    }
+    private android.widget.LinearLayout card(android.widget.LinearLayout parent,String title){
+        android.widget.LinearLayout c=new android.widget.LinearLayout(this);c.setOrientation(1);int pad=DevUi.dp(this,20);c.setPadding(pad,pad,pad,pad);c.setBackground(DevUi.panel(this));
+        android.widget.LinearLayout.LayoutParams params=new android.widget.LinearLayout.LayoutParams(-1,-2);params.bottomMargin=DevUi.dp(this,16);parent.addView(c,params);
+        TextView label=DevUi.text(this,title,20);label.setTextColor(DevUi.MUTED);c.addView(label);return c;
+    }
+    private void buildDashboard(){
+        android.widget.ScrollView scroll=new android.widget.ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(DevUi.BG);
+        android.widget.LinearLayout root=new android.widget.LinearLayout(this);root.setOrientation(1);int pad=DevUi.dp(this,24);root.setPadding(pad,pad,pad,pad);scroll.addView(root);setContentView(scroll);
+        TextView title=DevUi.text(this,"차량 상태 · LIVE",32);title.setTypeface(null,1);root.addView(title);
+        TextView note=DevUi.text(this,"개발용 에뮬레이터 · 시뮬레이션",20);note.setTextColor(DevUi.MUTED);root.addView(note);
+        android.widget.LinearLayout metrics=new android.widget.LinearLayout(this);metrics.setOrientation(0);root.addView(metrics);
+        android.widget.LinearLayout speedCard=card(metrics,"속도 · km/h");android.widget.LinearLayout.LayoutParams a=new android.widget.LinearLayout.LayoutParams(0,-2,1);a.setMargins(0,DevUi.dp(this,12),DevUi.dp(this,8),DevUi.dp(this,16));speedCard.setLayoutParams(a);
+        speedValue=DevUi.text(this,"—",56);speedValue.setTag("speed-value");speedValue.setTypeface(null,1);speedCard.addView(speedValue);
+        android.widget.LinearLayout gearCard=card(metrics,"기어 · P / R / N / D");android.widget.LinearLayout.LayoutParams b=new android.widget.LinearLayout.LayoutParams(0,-2,1);b.setMargins(DevUi.dp(this,8),DevUi.dp(this,12),0,DevUi.dp(this,16));gearCard.setLayoutParams(b);
+        gearValue=DevUi.text(this,"—",56);gearValue.setTag("gear-value");gearValue.setTypeface(null,1);gearCard.addView(gearValue);
+        android.widget.LinearLayout gps=card(root,"GPS 좌표");gpsValue=DevUi.text(this,"위치 수신 대기",26);gps.addView(gpsValue);
+        android.widget.LinearLayout reward=card(root,"경주 방문 보상");rewardValue=DevUi.text(this,rewardState,24);reward.addView(rewardValue);reward.addView(DevUi.text(this,"시연 구역 120초 체류 · 실제 방문 인증 아님",20));
+        android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);DevUi.button(toggle);reward.addView(toggle,new android.widget.LinearLayout.LayoutParams(-1,-2));
+        toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"GPS 보상 시연 진행 중":"GPS 보상 시연 중지됨";if(!collect)worker.execute(()->sendReset());render();});
+        android.widget.Button details=new android.widget.Button(this);details.setText("SDK·수신 상세 펼치기");DevUi.button(details);root.addView(details);
+        detailValue=DevUi.text(this,"수신 대기",20);detailValue.setTypeface(android.graphics.Typeface.MONOSPACE);detailValue.setVisibility(android.view.View.GONE);root.addView(detailValue);
+        details.setOnClickListener(v->{boolean open=detailValue.getVisibility()!=android.view.View.VISIBLE;detailValue.setVisibility(open?android.view.View.VISIBLE:android.view.View.GONE);details.setText(open?"SDK·수신 상세 접기":"SDK·수신 상세 펼치기");});
+    }
     private final FusedLocationListener listener=new FusedLocationListener(){
         public void onChanged(LocationData data){handler.post(()->{latest=data;locationState=data==null?"위치 없음":String.format(java.util.Locale.ROOT,"위도 %.6f / 경도 %.6f\nSDK 시각 %d / confidence %.2f",data.getLatitude(),data.getLongitude(),data.getTimestampMillis(),data.getConfidence());render();});}
         public void onError(Exception e){handler.post(()->{latest=null;locationState="위치 오류: "+e.getClass().getSimpleName();render();});}
     };
     @Override public void onCreate(Bundle state){super.onCreate(state);view=new TextView(this);view.setPadding(32,32,32,32);view.setTextSize(22);
         if(!BuildConfig.DEBUG||!(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish"))){view.setText("이 진단 화면은 개발용 에뮬레이터에서만 사용할 수 있어요.");setContentView(view);return;}
-        android.widget.LinearLayout root=new android.widget.LinearLayout(this);root.setOrientation(android.widget.LinearLayout.VERTICAL);root.addView(view);
-        android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);root.addView(toggle);setContentView(root);
-        boolean emulator=BuildConfig.DEBUG&&(android.os.Build.HARDWARE.contains("ranchu")||android.os.Build.HARDWARE.contains("goldfish"));toggle.setEnabled(emulator);
-        toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"가족 연결 확인 후 GPS 보상 시연 중":"GPS 보상 시연 중지됨";if(!collect)worker.execute(()->sendReset());render();});
+        buildDashboard();
         java.util.ArrayList<String> needed=new java.util.ArrayList<>();
         for(String permission:new String[]{"pleos.car.permission.FUSED_LOCATION","android.car.permission.CAR_SPEED"})if(checkSelfPermission(permission)!=android.content.pm.PackageManager.PERMISSION_GRANTED)needed.add(permission);
         if(!needed.isEmpty())requestPermissions(needed.toArray(new String[0]),71);

@@ -25,12 +25,12 @@ class VehicleSignalsScreenDeviceTest {
   instrumentation.runOnMainSync{find(activity.window.decorView,context.getString(R.string.vehicle_signals))!!.performClick()}
   activity=signals.waitForActivityWithTimeout(10000);assertNotNull(activity);instrumentation.removeMonitor(signals)
   var drive=false;var moving=false;var parkAfterDrive=false;var captured=false
-  try{for(i in 0..119){var value="";instrumentation.runOnMainSync{value=text(activity.window.decorView)}
-   drive=drive||value.contains("기어 값 8")
-   val speed=Regex("차량 속도 ([0-9.]+) m/s").find(value)?.groupValues?.get(1)?.toFloatOrNull()?:0f
+  try{for(i in 0..119){var value="";var speedText="";instrumentation.runOnMainSync{value=(activity.window.decorView.findViewWithTag<View>("gear-value") as TextView).text.toString();speedText=(activity.window.decorView.findViewWithTag<View>("speed-value") as TextView).text.toString()}
+   drive=drive||value.contains("D · 8")
+   val speed=(speedText.toFloatOrNull()?:0f)/3.6f
    moving=moving||speed>1f
    if(drive&&speed>1f&&!captured){val bitmap=instrumentation.uiAutomation.takeScreenshot();java.io.File(context.cacheDir,"diagnostic-drive.png").outputStream().use{bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)};captured=true}
-   parkAfterDrive=parkAfterDrive||(drive&&value.contains("기어 값 4"))
+   parkAfterDrive=parkAfterDrive||(drive&&value.contains("P · 4"))
    if(drive&&moving&&parkAfterDrive)break
    Thread.sleep(1000)
   }
@@ -38,4 +38,3 @@ class VehicleSignalsScreenDeviceTest {
   }finally{instrumentation.runOnMainSync{activity.finish()}}
  }
 }
-

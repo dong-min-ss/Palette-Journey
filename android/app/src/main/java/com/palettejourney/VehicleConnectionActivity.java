@@ -23,9 +23,9 @@ public class VehicleConnectionActivity extends Activity {
     interface Work {void run()throws Exception;}
     private void run(Work work){if(working)return;codeInput=code==null?"":code.getText().toString();originInput=origin==null?"":origin.getText().toString();pagePosition=pages==null?-1:pages.getSelectedItemPosition();working=true;setButtons(false);executor.execute(()->{try{work.run();}catch(Exception e){handler.post(()->status.setText("연결하지 못했어요. 서버 실행·Wi-Fi·코드 만료를 확인해주세요."));}finally{handler.post(()->{working=false;setButtons(true);});}});}
     private void setButtons(boolean enabled){for(int i=0;i<root.getChildCount();i++)if(root.getChildAt(i) instanceof Button)root.getChildAt(i).setEnabled(enabled);}
-    private void button(String text,Work work){Button button=new Button(this);button.setText(text);root.addView(button);button.setOnClickListener(v->run(work));}
+    private void button(String text,Work work){Button button=new Button(this);button.setText(text);DevUi.button(button);root.addView(button);button.setOnClickListener(v->run(work));}
     @Override public void onCreate(Bundle saved){super.onCreate(saved);
-        root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(28,24,28,24);ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);
+        root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(28,24,28,24);ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);root.post(()->DevUi.styleTree(root));
         status=new TextView(this);status.setTextSize(22);root.addView(status);
         if(!BuildConfig.DEBUG||!(Build.HARDWARE.contains("ranchu")||Build.HARDWARE.contains("goldfish"))){status.setText("차량 상태 미확인: 연결 조작이 잠겨 있어요.");return;}
         status.setText("에뮬레이터 연결 시연 · 녹음은 전송하지 않아요.\n차량 가족을 시작하거나 웹 메뉴의 연결 코드를 입력하세요. 차량 가족 재연결 시 이전 연결은 만료돼요.");
@@ -49,7 +49,7 @@ public class VehicleConnectionActivity extends Activity {
         StringBuilder text=new StringBuilder("가족 공유 팔레트 · ");JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");text.append(colors.length()).append("색\n");
         for(int i=0;i<colors.length();i++){JSONObject c=colors.getJSONObject(i);if("region".equals(c.optString("source")))text.append(c.optString("name")).append(" ").append(c.optString("hex")).append("\n");}
         for(int i=0;i<stickers.length();i++){JSONObject item=stickers.getJSONObject(i);if("regional".equals(item.optString("kind"))&&item.optBoolean("unlocked"))text.append(item.getString("name")).append(item.optBoolean("developmentUnlocked")?" · 개발용":" · 모의 방문 보상").append("\n");}
-        text.append("실제 방문 인증 아님 · Pleos 위치 미연동");String value=text.toString();handler.post(()->{if(!isDestroyed())rewards.setText(value);});
+        text.append("시뮬레이션 보상 · 실제 방문 인증 아님");String value=text.toString();handler.post(()->{if(!isDestroyed())rewards.setText(value);});
     }
     private void loadLibrary()throws Exception{
         refreshRewards();
@@ -57,7 +57,7 @@ public class VehicleConnectionActivity extends Activity {
         String webOrigin=connection.optString("webOrigin","http://localhost:3000");
         JSONArray list=library.getJSONArray("pages"),diaries=library.getJSONArray("diaries"),children=library.getJSONArray("children"),trips=library.getJSONArray("trips");String[] names=new String[list.length()];
         for(int i=0;i<list.length();i++){JSONObject page=list.getJSONObject(i);String prefix="";for(int j=0;j<diaries.length();j++)if(diaries.getJSONObject(j).getString("id").equals(page.getString("diaryId"))){JSONObject diary=diaries.getJSONObject(j);prefix=diary.getString("title")+" / ";for(int k=0;k<children.length();k++)if(children.getJSONObject(k).getString("id").equals(diary.getString("childId")))prefix=children.getJSONObject(k).getString("name")+" / "+prefix;for(int k=0;k<trips.length();k++)if(trips.getJSONObject(k).getString("id").equals(diary.getString("tripId")))prefix=trips.getJSONObject(k).getString("title")+" / "+prefix;}names[i]=prefix+page.getString("title");}
-        handler.post(()->{if(isDestroyed())return;pageList=list;if(!getPreferences(0).contains("webOrigin"))origin.setText(webOrigin);pages.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n연결은 최대 8시간 유지돼요. 녹음은 차량에만 보관돼요.");});
+        handler.post(()->{if(isDestroyed())return;pageList=list;if(!getPreferences(0).contains("webOrigin"))origin.setText(webOrigin);pages.setAdapter(DevUi.spinner(this,names));JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n연결은 최대 8시간 유지돼요. 녹음은 차량에만 보관돼요.");});
     }
     private final Runnable poll=new Runnable(){public void run(){if(!visible)return;if(token!=null&&!working)VehicleConnectionActivity.this.run(()->{refreshRewards();JSONObject connection=VehicleApi.request("/api/session/connection","GET",null,token);handler.post(()->{JSONObject page=connection.optJSONObject("page");status.setText("웹 가족 연결됨 · 함께 보는 페이지: "+(page==null?"아직 선택하지 않음":page.optString("title"))+"\n녹음은 차량에만 보관돼요.");});});handler.postDelayed(this,5000);}};
     @Override protected void onStart(){super.onStart();visible=true;handler.postDelayed(poll,5000);}

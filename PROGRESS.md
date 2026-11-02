@@ -291,3 +291,9 @@
 - 진단 화면만 debug DO 예외였으나 실제 사용은 MainActivity→VehicleConnectionActivity→VehicleSignalsActivity가 같은 Task에 누적된다. debug 전용 Manifest에서 첫 화면/가족 연결도 임시 예외에 포함해 실제 진입 경로를 보완했다. release에는 포함하지 않는다.
 - 기기 화면 테스트를 직접 진단 실행에서 실제 버튼 순서로 수정. 가족 연결 초기 조회 중 버튼 비활성 대기 추가. 조작 타이밍/준비 지연에 따른 실패는 재시험했다.
 - 최종 실제 경로 테스트1개 성공. D+가속 시 UiAutomation 화면 캡처를 앱 내부 cache에 저장 후 확인: 좌측 D/주행 속도와 우측 가림 없는 진단의 기어8/변경이벤트166회/최근수신0초 확인. evidence/diagnostic-drive.png. P/속도0 복원. 최종 APK 데이터 보존 설치 성공.
+
+## 2026-11-02 — 개발용 차량 UI 가독성 개선
+- 진단 화면을 고대비 다크 대시보드로 교체. 큰 속도/kmh 및 문자+원시 기어 카드, GPS 좌표 카드, 경주 보상 카드와 명시적인 큰 버튼 배치. SDK 시각/confidence/m/s/수신 횟수 등은 접을 수 있는 상세 영역으로 이동.
+- 공통 DevUi 추가: 플랫폼 테마에 영향받던 연한 글자/회색 버튼을 명시적 텍스트·배경·비활성 색과 dp 크기로 설정. 첫 화면·가족 연결의 버튼/입력/스피너에도 적용. 기존 팔레트 스와치의 대비/색은 보존. 기존 세 버튼 명칭 유지.
+- 상태·보상·구독 로직은 유지. 기존 앱 화면 테스트를 새로 보이는 metric 카드의 실제 텍스트로 검사하도록 갱신.
+- 검증: assembleDebug/testDebugUnitTest 기존18개 성공. 실제 Main→가족 연결→진단에서 D/가속/P 카드 갱신 기기 테스트1개 tests=1 failures=0/errors=0 성공. evidence/diagnostic-ui.png에서 주행 중 새 UI의 대비/정렬/버튼 표시 시각 확인. 마지막 팔레트 스타일 보존 수정 후 assembleDebug 재성공. 최종 APK 데이터 보존 설치 성공.

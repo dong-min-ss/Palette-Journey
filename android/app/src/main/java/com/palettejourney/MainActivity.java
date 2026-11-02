@@ -146,6 +146,7 @@ public class MainActivity extends Activity {
         String[] names = {"빨강", "주황", "노랑", "초록", "파랑", "보라", "핑크", "브라운", "화이트", "블랙", "그레이"};
         for (int i = 0; i < colors.length; i++) {
             TextView swatch = new TextView(this);
+            swatch.setTag("palette-swatch");
             swatch.setText(names[i]);
             swatch.setContentDescription(names[i]);
             swatch.setTextColor(i == 9 ? Color.WHITE : Color.BLACK);
@@ -242,7 +243,7 @@ public class MainActivity extends Activity {
             if (!checked) { if (answer.busy()) cancelAnswerTurn(); conversation.finish(); renderConversation(); }
             refreshAnswerButtons();
         });
-        ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);
+        ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         updateSpeech("음성 서비스 연결 전");
     }
 
