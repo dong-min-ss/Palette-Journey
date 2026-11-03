@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; script-src 'unsafe-inline'; style-src 'unsafe-inline'"><style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18263a;display:grid;place-items:center}#paper{position:relative;width:min(100vw,150vh);aspect-ratio:3/2;background:white;overflow:hidden;border-radius:8px}canvas{position:absolute;inset:0;width:100%;height:100%}.sticker{position:absolute}.sticker>*{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+</style></head><body><div id="paper" role="img" aria-label="저장된 그림일기"><canvas id="ink" width="600" height="400"></canvas></div><script>
+// Only app-owned code runs here. Page data is base64 JSON; credentials never enter this view.
+const data=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob('__PAGE_DATA__'),c=>c.charCodeAt(0)))),paper=document.getElementById('paper');
+function paint(canvas,strokes){const ctx=canvas.getContext('2d');for(const s of strokes??[]){ctx.globalCompositeOperation=s.tool==='erase'?'destination-out':'source-over';ctx.strokeStyle=s.color;ctx.fillStyle=s.color;ctx.lineWidth=s.width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(...s.points[0]);for(const p of s.points.slice(1))ctx.lineTo(...p);if(s.points.length===1){ctx.arc(...s.points[0],s.width/2,0,Math.PI*2);ctx.fill();}else ctx.stroke();}ctx.globalCompositeOperation='source-over';}
+(async()=>{try{
+ const ink=document.getElementById('ink'),ctx=ink.getContext('2d'),paths={sky:'M5 5H595V395H5Z',sun:'M508 90 A43 43 0 1 0 422 90 A43 43 0 1 0 508 90',mountain:'M5 260L155 90L285 240L370 150L595 285V395H5Z',field:'M5 295Q150 225 300 285T595 270V395H5Z',road:'M285 280L320 280Q295 325 410 395H190Q320 320 285 280Z'};
+ for(const id of ['sky','sun','mountain','field','road'])if(data.page.legacyRegions?.[id]){ctx.fillStyle=data.page.legacyRegions[id];ctx.fill(new Path2D(paths[id]));}paint(ink,data.page.strokes);
+ const loads=[];for(const item of data.page.stickers??[]){const asset=data.assets[item.stickerId];if(!asset)throw Error('MISSING_STICKER');const box=document.createElement('div');box.className='sticker';Object.assign(box.style,{left:item.x/6+'%',top:item.y/4+'%',width:item.width/6+'%',height:item.height/4+'%'});
+ const image=value=>{const img=new Image();loads.push(new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;}));img.src='data:image/svg+xml;base64,'+value;return img;};
+ const canvas=document.createElement('canvas');canvas.width=600;canvas.height=400;paint(canvas,item.strokes);box.append(image(asset.base),canvas,image(asset.outline));paper.append(box);}
+ await Promise.all(loads);document.body.dataset.ready='true';
+}catch{document.body.dataset.error='true';paper.textContent='그림을 표시하지 못했어요.';}})();
+</script></body></html>

@@ -26,7 +26,7 @@ import ai.pleos.playground.tts.constant.ErrorType;
 import ai.pleos.playground.tts.listener.EventListener;
 import ai.pleos.playground.tts.listener.OnInitializeListener;
 
-/** Palette preview and emulator-only Pleos speech diagnostic. Vehicle/account state is not connected. */
+/** Emulator MVP entry point for family pairing, guided recording and the family journey book. */
 public class MainActivity extends Activity {
     private static final String QUESTION = "오늘 어떤 일이 있었어?";
     private static final String TAG = "PaletteTts";
@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private TextView currentQuestion, conversationHistory, conversationState;
     private Button skipConversation, endConversation;
     private final List<VoiceArchive.Entry> recordedEntries=new ArrayList<>();
-    private Button saveRecording,openRecordings,webConnection;
+    private Button saveRecording,openRecordings,webConnection,journeyBook;
     private boolean recordingSaved,foreground,pendingRecordStart;
     private void clearRecordedDrafts() {
         for(VoiceArchive.Entry entry:recordedEntries)if(entry.audio!=null)entry.audio.delete();
@@ -105,6 +105,7 @@ public class MainActivity extends Activity {
         if(saveRecording!=null)saveRecording.setEnabled(!conversation.active()&&!recordingSaved&&!answer.busy()&&!speechBusy&&recordedEntries.stream().anyMatch(entry->!entry.skipped));
         if(webConnection!=null)webConnection.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(openRecordings!=null)openRecordings.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
+        if(journeyBook!=null)journeyBook.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
     }
     private void playSpeechQuestion() {
         if (!speechReady || speechBusy || speech == null || !emulatorTestAllowed()) {
@@ -233,6 +234,7 @@ public class MainActivity extends Activity {
         DevUi.moveTo(root,(android.view.View)paletteDetails.getParent());DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         ((android.view.ViewGroup)openRecordings.getParent()).removeView(openRecordings);root.addView(openRecordings,2,new LinearLayout.LayoutParams(-1,-2));
         root.removeView(webConnection);root.addView(webConnection,2,new LinearLayout.LayoutParams(-1,-2));
+        journeyBook=new Button(this);journeyBook.setText("여행책 감상");root.addView(journeyBook,2,new LinearLayout.LayoutParams(-1,-2));journeyBook.setOnClickListener(v->startActivity(new Intent(this,JourneyBookActivity.class)));
         renderConversation();
         answerStatus.setText("동의 후 대화를 시작해주세요.");
         answerText.setText("");

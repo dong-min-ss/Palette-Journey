@@ -16,6 +16,15 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONObject;
 
 final class VehicleApi {
+    static byte[] audio(String path,String token,int revision)throws Exception {
+        HttpURLConnection connection=(HttpURLConnection)new URL("http://10.0.2.2:3000"+path).openConnection();
+        connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(5000);connection.setReadTimeout(35000);connection.setRequestProperty("Authorization","Bearer "+token);
+        try{
+            int status=connection.getResponseCode();if(status!=200)throw new java.io.IOException("HTTP "+status);
+            if(!String.valueOf(revision).equals(connection.getHeaderField("X-Voice-Revision")))throw new java.io.IOException("VOICE_CHANGED");
+            try(java.io.InputStream in=connection.getInputStream()){byte[] bytes=in.readNBytes(8000045);if(bytes.length<12||bytes.length>8000044)throw new java.io.IOException("INVALID_AUDIO");return bytes;}
+        }finally{connection.disconnect();}
+    }
     static String randomToken(){byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);StringBuilder b=new StringBuilder();for(byte v:bytes)b.append(String.format("%02x",v&255));return b.toString();}
     static JSONObject request(String path,String method,JSONObject body,String token)throws Exception {
         HttpURLConnection connection=(HttpURLConnection)new URL("http://10.0.2.2:3000"+path).openConnection();

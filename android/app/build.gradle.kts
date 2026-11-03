@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    sourceSets.getByName("main").assets.srcDir("../../web/assets")
     buildFeatures { buildConfig = true }
     namespace = "com.palettejourney"
     useLibrary("android.car")

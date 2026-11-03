@@ -30,6 +30,7 @@
         <uses-library android:name="android.car" android:required="false" />
         <activity android:name=".VehicleSignalsActivity" android:exported="false" />
         <activity android:name=".RecordingsActivity" android:exported="false" />
+        <activity android:name=".JourneyBookActivity" android:exported="false" />
     </application>
 
 </manifest>
