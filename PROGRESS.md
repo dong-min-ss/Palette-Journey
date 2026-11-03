@@ -369,3 +369,9 @@
 - onBackPressed 경로를 사용해 업로드 중 결과 대기 보호와 각 화면 onStop의 음원 정리·SDK 해제·시연 일시정지는 그대로 유지했다.
 - :app:assembleDebug 및 :app:testDebugUnitTest18개 성공. NavigationDeviceTest는 별도 합성 가족으로7개 화면의 맨 아래 스크롤 뒤 고정 버튼 복귀 및 Main→개발자 시연→가족 연결→시연→Main 중첩 복귀를 확인한다. 원래 가족 슬롯을 복원하고 시험 세션은 종료한다. 첫 기기 실행은 개발 서버가 꺼져 있어 fixture 생성 연결 실패였으며 서버를 재시작하고 재검증했다.
 - 최종 NavigationDeviceTest1개 tests=1 failures=0 errors=0,24.566초 성공. 7개 화면에서 스크롤 후 뒤로가기 및 중첩 이전 화면 복귀 확인. evidence/vehicle-back.png로 가족 연결 상단 고정 버튼을 시각 확인했다. 최종 APK install -r Success, Main 재실행 완료.
+
+
+## 2026-11-03 — 개발자 시연 버튼 깜빡임 수정
+- 실제 Running Devices의 제주 수집 완료 화면 확인. 원인은 1초 폴링 dispatch마다 전체 버튼 enabled를 false/true로 전환하고 도시 tint를 재생성하던 처리였다. 폴링 busy와 명시적 commandBusy를 분리하고 선택 도시 변경 때만 tint를 갱신했다.
+- 폴링 중 사용자 도시 선택은 generation을 바꾸고 같은 네트워크 큐에서 처리하며 오래된 폴링 결과를 버린다. 명시적 작업의 중복 클릭 차단은 유지한다.
+- :app:assembleDebug/:app:testDebugUnitTest18개 성공. DrivePollingDeviceTest1개 tests=1 failures=0 errors=0,15.474초 성공. 실제 주기 갱신3.2초 후 동일 tint 유지, 느린 폴링 응답을 latch로 대기시킨 동안 도시/일시정지 버튼 활성, 그 상태에서 부산 선택→중복 조작 잠금→대기 응답 해제→부산 반영/버튼 복구 확인. 합성 가족만 사용하고 원래 시연 가족 슬롯/모드를 복원·시험 세션 종료했다. install -r Success.
