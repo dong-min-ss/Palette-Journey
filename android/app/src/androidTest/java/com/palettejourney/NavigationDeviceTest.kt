@@ -31,6 +31,7 @@ class NavigationDeviceTest {
   fun back(a:Activity){ins.runOnMainSync{scroll(a.window.decorView)};ins.waitForIdleSync();ins.runOnMainSync{val b=a.window.decorView.findViewWithTag<Button>("vehicle-back");assertNotNull(b);assertTrue(b.isShown);assertTrue(b.isEnabled);assertTrue(b.top>=0);b.performClick()}}
   try{
    VehicleApi.saveDemo(ctx,token);home=ins.startActivitySync(Intent(ctx,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+   ins.waitForIdleSync();val homeImage=ins.uiAutomation.takeScreenshot();File(ctx.cacheDir,"ui-vehicle-home.png").outputStream().use{homeImage.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
    for(type in listOf(VehicleConnectionActivity::class.java,VehicleSignalsActivity::class.java,CollectionActivity::class.java,JourneyBookActivity::class.java,RecordingsActivity::class.java,UploadStoryActivity::class.java,DevDriveActivity::class.java)){
     current=open(home!!,type);back(current!!);resumed(home!!)
    }

@@ -375,3 +375,12 @@
 - 실제 Running Devices의 제주 수집 완료 화면 확인. 원인은 1초 폴링 dispatch마다 전체 버튼 enabled를 false/true로 전환하고 도시 tint를 재생성하던 처리였다. 폴링 busy와 명시적 commandBusy를 분리하고 선택 도시 변경 때만 tint를 갱신했다.
 - 폴링 중 사용자 도시 선택은 generation을 바꾸고 같은 네트워크 큐에서 처리하며 오래된 폴링 결과를 버린다. 명시적 작업의 중복 클릭 차단은 유지한다.
 - :app:assembleDebug/:app:testDebugUnitTest18개 성공. DrivePollingDeviceTest1개 tests=1 failures=0 errors=0,15.474초 성공. 실제 주기 갱신3.2초 후 동일 tint 유지, 느린 폴링 응답을 latch로 대기시킨 동안 도시/일시정지 버튼 활성, 그 상태에서 부산 선택→중복 조작 잠금→대기 응답 해제→부산 반영/버튼 복구 확인. 합성 가족만 사용하고 원래 시연 가족 슬롯/모드를 복원·시험 세션 종료했다. install -r Success.
+
+
+## 2026-11-03 — 차량·모바일 앱 UI 마감
+- 차량 DevUi 공통 테마를 숲색/아이보리/민트로 조정하고 둥근 상태별 버튼/Ripple, 동의 체크박스 대비 적용. Main은4개 탐색 카드·브랜드/소개·대화 영역·개발 도구 접기로 재구성했다. 보유 사전과 여행책 배경도 같은 계열로 맞췄다. 기존 버튼 라벨/액션 및 주행 갱신 안정화 유지.
+- 모바일 연결 화면에 코드로 만든 여행 엽서와 브랜드 마크, 전체 아이콘은 선형 inline SVG. 상단 차량 연결/저장, 하단5메뉴, 모바일 바닥 패널·PC 옆 패널, 고정 완료 조작, 종이 캔버스와 분리된 대화 카드, 컬렉션 카드/보유 상태를 정리했다. 글꼴/미디어 외부 요청은 추가하지 않았다.
+- npm.cmd run check61/61 성공. Android assembleDebug/testDebugUnitTest18개 성공. 최초4개 기기 검사 중3개 성공 후 NavigationDeviceTest에서 빠른 화면 이탈 중 Car.disconnect의 Service not registered 예외가 드러났다. VehicleSignals/DevDrive 해제 시 이미 해제된 서비스의 IllegalArgumentException을 처리하고 참조를 finally에서 정리했다.
+- 재실행 기기4개 tests=4 failures=0 errors=0 성공: Collection9.654초/JourneyBook11.274초/DrivePolling7.185초/Navigation19.272초. 체크박스 대비 보완 뒤 최종 Navigation1개15.832초 재성공. 최종 APK install -r Success, Main 실행 완료. 합성 가족 시험 후 원래 가족 모드·토큰 복원.
+- 별도127.0.0.1:3001 메모리 서버/합성 가족으로 모바일390x844·360x640 및 PC1280x800 확인. 가로 넘침0, 도구/하단 메뉴 경계 정상, 부산 보유5카드→스티커 실제 배치→저장→새로고침 후 배치/제목 보존 확인. 패널 스크롤 후 완료 버튼 고정 및 컬렉션 scroll margin 보완. 원래3000번 웹 가족/그림은 조작하지 않았다. 임시 서버/탭/viewport 정리.
+- evidence/ui-welcome.png, ui-mobile-studio.png, ui-mobile-catalog.png, ui-desktop-catalog.png, ui-vehicle-home.png 시각 확인. 개발 도구→개발자 주행 시연 및 웹 저장 버튼명을 README/시연 문서에 반영했다.

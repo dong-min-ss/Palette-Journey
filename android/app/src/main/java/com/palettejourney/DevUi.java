@@ -11,9 +11,9 @@ import android.widget.*;
 
 /** Explicit contrast and dp sizing, independent of automotive theme overlays. */
 final class DevUi {
-    static final int BG=Color.rgb(11,18,32), PANEL=Color.rgb(24,38,58), TEXT=Color.rgb(241,245,249), MUTED=Color.rgb(176,194,215), ACCENT=Color.rgb(47,109,246);
+    static final int BG=Color.rgb(12,25,24), PANEL=Color.rgb(23,43,39), TEXT=Color.rgb(247,247,238), MUTED=Color.rgb(173,194,184), ACCENT=Color.rgb(34,110,91);
     static int dp(Context c,int n){return Math.round(n*c.getResources().getDisplayMetrics().density);}
-    static GradientDrawable panel(Context c){GradientDrawable d=new GradientDrawable();d.setColor(PANEL);d.setCornerRadius(dp(c,14));d.setStroke(dp(c,1),Color.rgb(53,73,99));return d;}
+    static GradientDrawable panel(Context c){GradientDrawable d=new GradientDrawable();d.setColor(PANEL);d.setCornerRadius(dp(c,20));d.setStroke(dp(c,1),Color.rgb(48,76,66));return d;}
     static TextView text(Context c,String value,int size){TextView t=new TextView(c);t.setText(value);t.setTextSize(size);t.setTextColor(TEXT);t.setPadding(0,dp(c,5),0,dp(c,5));return t;}
     static LinearLayout section(LinearLayout parent,String title){
         Context c=parent.getContext();LinearLayout box=new LinearLayout(c);box.setOrientation(1);int pad=dp(c,18);box.setPadding(pad,pad,pad,pad);box.setBackground(panel(c));
@@ -26,12 +26,34 @@ final class DevUi {
         toggle.setOnClickListener(v->{boolean open=body.getVisibility()!=View.VISIBLE;body.setVisibility(open?View.VISIBLE:View.GONE);toggle.setText(title+(open?" −":" ＋"));});return body;
     }
     static void moveTo(LinearLayout parent,View child){if(child.getParent() instanceof ViewGroup)((ViewGroup)child.getParent()).removeView(child);parent.addView(child,new LinearLayout.LayoutParams(-1,-2));}
-    static void button(Button b){b.setAllCaps(false);b.setTextSize(22);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{MUTED,Color.WHITE}));b.setBackgroundTintList(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{PANEL,ACCENT}));b.setMinHeight(dp(b.getContext(),60));b.setPadding(dp(b.getContext(),18),dp(b.getContext(),12),dp(b.getContext(),18),dp(b.getContext(),12));}
+    static void button(Button b){
+        if(b instanceof CompoundButton)((CompoundButton)b).setButtonTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{Color.rgb(141,221,184),MUTED}));
+        b.setAllCaps(false);b.setTextSize(22);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        boolean primary="primary-action".equals(b.getTag());
+        b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{MUTED,TEXT}));
+        android.graphics.drawable.StateListDrawable states=new android.graphics.drawable.StateListDrawable();
+        for(int i=0;i<3;i++){GradientDrawable shape=panel(b.getContext());shape.setColor(i==0?BG:i==1?Color.rgb(43,91,74):primary?ACCENT:PANEL);states.addState(i==0?new int[]{-android.R.attr.state_enabled}:i==1?new int[]{android.R.attr.state_pressed}:new int[]{},shape);}
+        b.setBackgroundTintList(null);b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(0x227fdfba),states,null));
+        if("destination-action".equals(b.getTag())){b.setBackgroundColor(Color.TRANSPARENT);b.setTextSize(27);}
+        b.setMinHeight(dp(b.getContext(),60));b.setPadding(dp(b.getContext(),20),dp(b.getContext(),14),dp(b.getContext(),20),dp(b.getContext(),14));
+    }
+    static void home(LinearLayout root,Button book,Button collection,Button family,Button recordings,Button developer){
+        java.util.List<View> rest=new java.util.ArrayList<>();
+        for(int i=2;i<root.getChildCount();i++){View v=root.getChildAt(i);if(v!=book&&v!=collection&&v!=family&&v!=recordings&&v!=developer)rest.add(v);}
+        root.removeAllViews();int pad=dp(root.getContext(),24);root.setPadding(pad,pad,pad,pad);
+        TextView brand=text(root.getContext(),"●  PALETTE JOURNEY",20);brand.setTextColor(Color.rgb(141,221,184));brand.setTag("brand-copy");brand.setLetterSpacing(.12f);root.addView(brand);
+        TextView greeting=text(root.getContext(),"오늘의 여행을, 오래 남을 이야기로",34);greeting.setTypeface(null,1);root.addView(greeting);
+        TextView subtitle=text(root.getContext(),"그림과 목소리로 모으는 우리 가족의 여행",20);subtitle.setTag("muted-copy");subtitle.setTextColor(MUTED);root.addView(subtitle);
+        Button[] buttons={book,collection,family,recordings};String[] captions={"그림과 대화를 다시 만나는 곳","여행하며 모은 색과 스티커","휴대폰으로 이어 그리기","차량에 간직한 목소리"};String[] marks={"01  JOURNAL","02  COLLECTION","03  CONNECT","04  VOICE"};
+        for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(root.getContext());root.addView(line,new LinearLayout.LayoutParams(-1,-2));for(int col=0;col<2;col++){int n=row*2+col;LinearLayout tile=new LinearLayout(root.getContext());tile.setOrientation(1);tile.setPadding(dp(root.getContext(),16),dp(root.getContext(),12),dp(root.getContext(),16),dp(root.getContext(),14));tile.setBackground(panel(root.getContext()));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(col==0?0:dp(root.getContext(),8),dp(root.getContext(),12),col==0?dp(root.getContext(),8):0,0);line.addView(tile,lp);TextView mark=text(root.getContext(),marks[n],16);mark.setTag("brand-copy");mark.setTextColor(Color.rgb(141,221,184));tile.addView(mark);buttons[n].setTag("destination-action");tile.setOnClickListener(v->{if(buttons[n].isEnabled())buttons[n].performClick();});buttons[n].setGravity(android.view.Gravity.START|android.view.Gravity.CENTER_VERTICAL);tile.addView(buttons[n],new LinearLayout.LayoutParams(-1,-2));TextView hint=text(root.getContext(),captions[n],18);hint.setTag("muted-copy");hint.setTextColor(MUTED);tile.addView(hint);}}
+        LinearLayout conversation=section(root,"함께 나누는 이야기");for(View v:rest)conversation.addView(v);
+        if(developer!=null){LinearLayout tools=fold(root,"개발 도구");tools.addView(developer);tools.addView(text(root.getContext(),"모의 주행 · 지역 해금 시연",18));}
+    }
     static void styleTree(View v){
         if("palette-swatch".equals(v.getTag()))return;
         if(v instanceof Button&&((Button)v).getText().length()>0){button((Button)v);if("fold-toggle".equals(v.getTag()))((Button)v).setBackgroundTintList(ColorStateList.valueOf(PANEL));}
         else if(v instanceof EditText){EditText e=(EditText)v;e.setTextSize(22);e.setTextColor(TEXT);e.setHintTextColor(MUTED);e.setPadding(dp(v.getContext(),16),dp(v.getContext(),14),dp(v.getContext(),16),dp(v.getContext(),14));e.setBackground(panel(v.getContext()));}
-        else if(v instanceof TextView){TextView t=(TextView)v;t.setTextColor(TEXT);float sp=t.getTextSize()/v.getResources().getDisplayMetrics().scaledDensity;if(sp<20)t.setTextSize(20);}
+        else if(v instanceof TextView){TextView t=(TextView)v;t.setTextColor("brand-copy".equals(t.getTag())?Color.rgb(141,221,184):"muted-copy".equals(t.getTag())?MUTED:TEXT);float sp=t.getTextSize()/v.getResources().getDisplayMetrics().scaledDensity;if(sp<20)t.setTextSize(20);}
         if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)styleTree(((ViewGroup)v).getChildAt(i));
         if(v instanceof LinearLayout&&((LinearLayout)v).getOrientation()==LinearLayout.HORIZONTAL){LinearLayout row=(LinearLayout)v;boolean buttons=row.getChildCount()>0;for(int i=0;i<row.getChildCount();i++)buttons=buttons&&row.getChildAt(i) instanceof Button;if(buttons)for(int i=0;i<row.getChildCount();i++){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(v.getContext(),3),0,dp(v.getContext(),3),0);row.getChildAt(i).setLayoutParams(p);}}
     }
