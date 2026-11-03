@@ -10,6 +10,37 @@ import {VisitStore} from '../backend/visits.mjs';
 import {ownedStickers} from '../backend/stickers.mjs';
 const token=()=>randomBytes(32).toString('hex');
 const sample=(timestamp,latitude=35.8347)=>({source:'simulation',timestamp,latitude,longitude:129.219});
+test('vehicle HTTP award reaches family clients once, survives reconnect/restart and stays separate from development access',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'palette-family-sync-')),path=join(dir,'db');
+ let now=1000000,a=new AccountStore(path,()=>now),server,base;
+ const owner=token(),vehicle=token(),phone=token(),outsider=token(),foreignOwner=token();
+ const start=async()=>{server=createApp(a);a.mockLocationAccess=true;a.developmentStickerAccess=true;await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;};
+ const call=async(credential,path,method='GET',body)=>{const response=await fetch(base+path,{method,headers:{Authorization:`Bearer ${credential}`,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});assert.equal(response.status,200);return response.json();};
+ const catalog=credential=>call(credential,'/api/session/catalog');
+ const regional=data=>[...data.colors,...data.stickers.filter(s=>s.kind==='regional')];
+ const gps=latitude=>call(vehicle,'/api/session/visits/vehicle','POST',{source:'pleos-emulator',valid:true,latitude,longitude:129.219,measuredAt:now});
+ try{
+  await start();await call(owner,'/api/account/demo','PUT',{});
+  const session=await call(owner,'/api/sessions','POST',{});await call(vehicle,'/api/sessions/join','POST',{code:session.code});
+  const invite=await call(vehicle,'/api/session/invitations','POST',{});await call(phone,'/api/sessions/join','POST',{code:invite.code});
+  await call(foreignOwner,'/api/account','PUT',{});const foreign=await call(foreignOwner,'/api/sessions','POST',{});await call(outsider,'/api/sessions/join','POST',{code:foreign.code});
+  assert.ok(regional(await catalog(phone)).every(i=>!i.unlocked));
+  const dev=await catalog(outsider);assert.ok(dev.stickers.filter(i=>i.kind==='regional').every(i=>i.developmentUnlocked&&i.rewardSource===null));
+  for(let i=0;i<=8;i++){const result=await gps(35.8347);assert.equal(result.awarded,i===8);now+=15000;}
+  const earned=await catalog(phone);assert.ok(regional(earned).every(i=>i.unlocked&&i.rewardSource==='simulation'&&!i.developmentUnlocked));
+  assert.deepEqual(await catalog(vehicle),earned);
+  const palette=await call(phone,'/api/session/palette');assert.equal(palette.colors.length,14);assert.equal(palette.tickets,1);
+  now+=15000;await gps(37);now+=15000;
+  for(let i=0;i<=8;i++){assert.equal((await gps(35.8347)).awarded,false);now+=15000;}
+  await call(owner,`/api/sessions/${session.id}`,'DELETE');
+  const renewed=await call(owner,'/api/sessions','POST',{}),reconnected=token();await call(reconnected,'/api/sessions/join','POST',{code:renewed.code});
+  assert.deepEqual(await catalog(reconnected),earned);
+  await new Promise(r=>server.close(r));server=null;a.close();a=new AccountStore(path,()=>now);await start();
+  assert.deepEqual(await catalog(reconnected),earned);assert.deepEqual(await call(reconnected,'/api/session/palette'),palette);
+  const receipts=await call(reconnected,'/api/session/visits');assert.equal(receipts.rewards.length,1);assert.equal(receipts.rewards[0].source,'simulation');
+  assert.equal((await call(outsider,'/api/session/visits')).rewards.length,0);assert.deepEqual(await catalog(outsider),dev);
+ }finally{if(server)await new Promise(r=>server.close(r));a.close();rmSync(dir,{recursive:true,force:true});}
+});
 function setup(path=':memory:'){const a=new AccountStore(path);createApp(a);a.mockLocationAccess=true;const owner=token(),member=token();a.register(owner);a.joinSession(member,a.createSession(owner).code);return {a,owner,member,v:new VisitStore(a)};}
 test('entry/dwell resets on exit or gap; rejects invalid samples and ignores replay',()=>{
  const {a,member,v}=setup();try{

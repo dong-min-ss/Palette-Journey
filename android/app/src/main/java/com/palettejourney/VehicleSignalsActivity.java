@@ -82,7 +82,7 @@ public class VehicleSignalsActivity extends Activity {
         if(participant==null)participant=VehicleApi.load(this);if(participant==null)throw new IllegalStateException();
         org.json.JSONObject catalog=VehicleApi.request("/api/session/catalog","GET",null,participant);
         StringBuilder list=new StringBuilder();int colors=0,stickers=0;
-        for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!"gyeongju".equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(owned){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(owned?(item.optBoolean("developmentUnlocked")?" · 개발용 해금":" · 해금됨"):" · 잠김").append("\n");}}
+        for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!"gyeongju".equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(owned){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(!owned?" · 잠김":item.optBoolean("developmentUnlocked")?" · 개발용 해금 · 방문 인증 아님":"simulation".equals(item.optString("rewardSource"))?" · 모의 방문 보상 · 실제 방문 인증 아님":" · 해금됨").append("\n");}}
         String value="경주 색 "+colors+"/3 · 스티커 "+stickers+"/2\n"+list;
         handler.post(()->{if(active)assetValue.setText(value);});
     }catch(Exception e){handler.post(()->{if(active){assetValue.setText(connectionMessage(e));if("HTTP 401".equals(e.getMessage())){collect=false;rewardState="시연 중단 · 가족 연결 만료";render();}}});}}
