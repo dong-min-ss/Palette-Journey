@@ -21,9 +21,9 @@ public class UploadStoryActivity extends Activity {
     private boolean uploading,ready;
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(32,24,32,24);
-        TextView title=new TextView(this);title.setText("차량 이야기를 웹 그림일기에 올리기");title.setTextSize(28);root.addView(title);
+        TextView title=new TextView(this);title.setText("그림에 이야기 담기");title.setTextSize(28);root.addView(title);
         target=new TextView(this);target.setTextSize(22);root.addView(target);
-        TextView notice=new TextView(this);notice.setText("선택한 답변 원음과 질문·확인한 답변 문장을 연결된 가족 서버에 저장해요. 질문 음성은 포함하지 않아요. 차량 원본은 그대로 남아요. 기존 페이지 녹음은 덮어쓰지 않아요.");root.addView(notice);
+        TextView notice=new TextView(this);notice.setText("선택한 답변 원음과 질문·확인한 답변 문장을 연결된 가족 서버에 저장해요. 질문 음성은 포함하지 않아요. 차량 원본은 그대로 남아요. 기존 페이지 녹음은 덮어쓰지 않아요.");DevUi.fold(root,"저장 안내").addView(notice);
         status=new TextView(this);status.setTextSize(20);root.addView(status);
         upload=new Button(this);upload.setText("이 페이지에 녹음 올리기");upload.setEnabled(false);root.addView(upload);
         Button back=new Button(this);back.setText("돌아가기");root.addView(back);back.setOnClickListener(v->{if(!uploading)finish();else status.setText("전송 결과를 확인 중이에요. 잠시 기다려주세요.");});
@@ -51,7 +51,7 @@ public class UploadStoryActivity extends Activity {
     }
     private void send(){if(!ready||uploading)return;uploading=true;upload.setEnabled(false);status.setText("녹음을 올리고 있어요. 원본은 차량에 남아 있어요.");executor.execute(()->{try{
         VehicleApi.request("/api/session/pages/"+pageId+"/voice/vehicle","PUT",body,token);
-        main.post(()->{if(isDestroyed())return;uploading=false;ready=false;status.setText("이 그림일기에 대화를 저장했어요. 휴대폰에서 같은 그림을 열면 자동으로 준비돼요. 그림 아래 대화 녹음 재생을 눌러주세요. 준비되지 않으면 대화 내용·기록 관리 → 차량에서 올린 대화 확인을 눌러주세요.");});
+        main.post(()->{if(isDestroyed())return;uploading=false;ready=false;status.setText("저장 완료 · 휴대폰에서 대화 녹음 재생을 눌러주세요.");});
     }catch(Exception error){main.post(()->{if(isDestroyed())return;uploading=false;boolean expired=error.getMessage()!=null&&error.getMessage().contains("401");boolean conflict=error.getMessage()!=null&&error.getMessage().contains("409");if(expired){ready=false;status.setText("가족 연결이 만료됐어요. 차량에서 새 연결 코드로 다시 연결한 뒤 이 화면을 다시 열어주세요.");}else if(conflict){ready=false;status.setText("다른 기기에서 페이지 녹음이 바뀌었어요. 덮어쓰지 않았습니다. 웹에서 확인한 뒤 다시 선택해주세요.");}else{upload.setEnabled(true);status.setText("전송 결과를 확인하지 못했어요. 원본은 보관 중이에요. 연결 후 같은 버튼으로 재시도해도 중복 저장하지 않아요.");}});}});}
     @Override public void onBackPressed(){if(!uploading)super.onBackPressed();else status.setText("전송 결과를 확인 중이에요. 잠시 기다려주세요.");}
     @Override protected void onDestroy(){super.onDestroy();executor.shutdown();}

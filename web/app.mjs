@@ -83,10 +83,12 @@ async function load() {
   if(page)await openPage(page.id);else{currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
 }
+let catalogSignature=null;
 function renderCatalog(catalog){
+  const signature=JSON.stringify(catalog);if(signature===catalogSignature)return;catalogSignature=signature;
   stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
   for(const item of catalog.stickers){const button=document.createElement('button');button.className='secondary';button.disabled=!item.unlocked;
-    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name+(item.developmentUnlocked?' 붙이기 · 개발용':item.unlocked?' 붙이기':' · 잠김');button.append(image,label);
+    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name;const badge=document.createElement('small');badge.textContent=item.developmentUnlocked?'개발용':item.unlocked?'붙이기':'잠김';button.append(image,label,badge);
     button.onclick=()=>{stickerEditor.add(item.id);setTool('move');$('close-menu').click();};$('sticker-picker').append(button);}
   $('catalog-note').textContent=catalog.note;
   for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
@@ -96,8 +98,10 @@ function renderCatalog(catalog){
     else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
     const title=document.createElement('h3');title.textContent=item.name;
     const description=document.createElement('p');description.textContent=item.description;
-    const state=document.createElement('p');state.className='hint';state.textContent=item.kind==='basic'?'처음부터 제공 · 직접 색칠하는 스티커':item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.unlocked?(item.rewardSource==='simulation'?'모의 방문 보상 · 실제 방문 인증 아님':'해금됨'):`잠김 · ${item.acquisition}`;
-    card.append(title,description,state);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
+    const state=document.createElement('span');state.className='content-state '+(item.unlocked?'owned':'locked');state.textContent=item.kind==='basic'?'기본':item.developmentUnlocked?'개발용':item.unlocked?(item.rewardSource==='simulation'?'모의 보상':'해금됨'):'잠김';
+    const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='자세히';details.append(summary,description);
+    const provenance=document.createElement('p');provenance.textContent=item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.rewardSource==='simulation'?'모의 방문 보상 · 실제 방문 인증 아님':item.acquisition??'처음부터 제공';details.append(provenance);
+    card.append(title,state,details);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
   }
 }
 function renderEntryHeading(title=$('page-title').value){$('entry-date-display').textContent=$('page-date').value||currentPage?.entryDate||'';$('entry-title-display').textContent=title||'나의 그림일기';}

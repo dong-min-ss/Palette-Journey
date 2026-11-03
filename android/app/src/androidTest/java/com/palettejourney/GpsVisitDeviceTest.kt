@@ -29,7 +29,7 @@ class GpsVisitDeviceTest {
   activity=familyMonitor.waitForActivityWithTimeout(10000);assertNotNull(activity);instrument.removeMonitor(familyMonitor)
   for(i in 0..200){var ready=false;instrument.runOnMainSync{ready=button(activity.window.decorView,context.getString(R.string.vehicle_signals))?.isEnabled==true};if(ready)break;Thread.sleep(100)}
   val diagnosticMonitor=instrument.addMonitor(VehicleSignalsActivity::class.java.name,null,false)
-  instrument.runOnMainSync{button(activity.window.decorView,context.getString(R.string.vehicle_signals))!!.performClick()}
+  instrument.runOnMainSync{button(activity.window.decorView,"개발용 시연 ＋")!!.performClick();val diagnostic=button(activity.window.decorView,context.getString(R.string.vehicle_signals))!!;assertTrue(diagnostic.isShown);diagnostic.performClick()}
   activity=diagnosticMonitor.waitForActivityWithTimeout(10000);assertNotNull(activity);instrument.removeMonitor(diagnosticMonitor)
   fun assets():String{var value="";instrument.runOnMainSync{value=(activity.window.decorView.findViewWithTag<View>("reward-assets") as TextView).text.toString()};return value}
   fun capture(name:String){val bitmap=instrument.uiAutomation.takeScreenshot();java.io.File(context.cacheDir,name).outputStream().use{bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}}

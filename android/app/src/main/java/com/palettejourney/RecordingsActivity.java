@@ -35,10 +35,10 @@ public class RecordingsActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(40,32,40,32);
-        TextView title=new TextView(this);title.setText("차량에 저장한 음성 이야기");title.setTextSize(28);root.addView(title);
-        TextView notice=new TextView(this);notice.setText("차량에 원본을 보관해요. 선택한 녹음은 확인 후 웹 그림일기에 올릴 수 있어요. 질문은 다시 들을 때 TTS로 읽고, 답변은 녹음 원음을 재생해요. 질문 원음까지 녹음한 파일은 아니에요.");notice.setTextSize(18);root.addView(notice);
+        TextView title=new TextView(this);title.setText("저장한 이야기");title.setTextSize(28);root.addView(title);
+        TextView notice=new TextView(this);notice.setText("차량에 원본을 보관해요. 선택한 녹음은 확인 후 웹 그림일기에 올릴 수 있어요. 질문은 다시 들을 때 TTS로 읽고, 답변은 녹음 원음을 재생해요. 질문 원음까지 녹음한 파일은 아니에요.");notice.setTextSize(18);DevUi.fold(root,"녹음·재생 안내").addView(notice);
         selection=new Spinner(this);root.addView(selection);
-        details=new TextView(this);details.setTextSize(20);root.addView(details);
+        details=new TextView(this);details.setTextSize(20);DevUi.fold(root,"질문과 답변").addView(details);
         status=new TextView(this);status.setTextSize(20);root.addView(status);
         LinearLayout actions=new LinearLayout(this);
         play=new Button(this);play.setText("선택한 이야기 다시 듣기");actions.addView(play);
@@ -46,7 +46,7 @@ public class RecordingsActivity extends Activity {
         delete=new Button(this);delete.setText("선택한 녹음 삭제");actions.addView(delete);root.addView(actions);
         upload=new Button(this);upload.setText("선택한 이야기를 웹 페이지에 올리기");root.addView(upload);upload.setOnClickListener(v->{VoiceArchive.Saved value=selected();if(value!=null&&allowed()&&!playing)startActivity(new android.content.Intent(this,UploadStoryActivity.class).putExtra("archiveId",value.id));});
         Button back=new Button(this);back.setText("대화 화면으로 돌아가기");back.setOnClickListener(v->finish());root.addView(back);
-        ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);
+        ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         try{archive=new VoiceArchive(new File(getFilesDir(),"voice-archives"));reload();}catch(Exception error){status.setText("저장된 이야기를 읽지 못했어요.");}
         selection.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
             public void onNothingSelected(android.widget.AdapterView<?> parent){}
@@ -62,7 +62,7 @@ public class RecordingsActivity extends Activity {
     private VoiceArchive.Saved selected(){int p=selection.getSelectedItemPosition();return p>=0&&p<saved.size()?saved.get(p):null;}
     private void reload()throws java.io.IOException{
         saved=archive.list();List<String> labels=new ArrayList<>();for(int i=0;i<saved.size();i++)labels.add("음성 이야기 "+(i+1)+" · "+saved.get(i).entries.size()+"개 질문");
-        selection.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));showSelection();buttons();
+        selection.setAdapter(DevUi.spinner(this,labels.toArray(new String[0])));showSelection();buttons();
     }
     private void showSelection(){VoiceArchive.Saved value=selected();StringBuilder text=new StringBuilder();if(value!=null)for(VoiceArchive.Entry e:value.entries)text.append("질문: ").append(e.question).append("\n").append(e.skipped?"건너뛰었어요":"답변: "+e.answer).append("\n\n");details.setText(text.length()==0?"저장된 음성 이야기가 없어요.":text.toString());}
     private void buttons(){if(play==null)return;play.setEnabled(allowed()&&ready&&!playing&&selected()!=null);stop.setEnabled(playing);if(upload!=null)upload.setEnabled(allowed()&&!playing&&selected()!=null);delete.setEnabled(!playing&&selected()!=null);selection.setEnabled(!playing);}

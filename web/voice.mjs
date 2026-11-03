@@ -32,13 +32,13 @@ export function createVoiceDiary({getPage,getToken,api}) {
     say('음성 기록을 확인하고 있어요.');
     try {
       const result=await api(`/api/session/pages/${id}/voice`);if(epoch!==generation)return;metadata=result;showCues(result.recording?.cues??[]);
-      if(!result.recording){say('그림을 완성한 뒤 오늘의 대화를 남겨보세요. 차량에서 올린 대화도 이 그림과 함께 보관돼요.');return;}
+      if(!result.recording){say('아직 대화가 없어요.');return;}
       say('이 그림에 담긴 대화 녹음을 준비하고 있어요.');
       const route=result.recording.mode==='vehicle-answer-original'?'conversation':'audio';
       const response=await fetch(`/api/session/pages/${id}/voice/${route}`,{headers:{Authorization:`Bearer ${getToken()}`}});
       if(!response.ok)throw new Error(response.status===503?'SYNTHESIS_UNAVAILABLE':'LOAD_FAILED');
       if(response.headers.get('X-Voice-Revision')!==String(result.revision))throw new Error('VOICE_CHANGED');
-      const blob=await response.blob();if(epoch!==generation)return;preview(blob,false);say('그림과 함께 그날의 대화를 들어보세요.');
+      const blob=await response.blob();if(epoch!==generation)return;preview(blob,false);say('재생 준비 완료');
     }catch(error){if(epoch!==generation)return;say(error.message==='SYNTHESIS_UNAVAILABLE'?'대화 녹음을 준비하지 못했어요. 연결된 서버의 한국어 음성 상태를 확인한 뒤 대화 확인을 다시 눌러주세요.':'대화를 불러오지 못했어요. 대화 내용·기록 관리에서 대화 확인을 다시 눌러주세요.');}
     finally{if(epoch===generation){loading=false;render();}}
   }
@@ -100,12 +100,12 @@ export function createVoiceDiary({getPage,getToken,api}) {
     if(!ready||working||loading||draft||active())return;
     const epoch=generation,player=$('voice-player');
     if(!player.paused){player.pause();render();return;}
-    try{await player.play();if(epoch!==generation)return;say('그림을 보며 그날의 대화를 듣고 있어요.');}
+    try{await player.play();if(epoch!==generation)return;say('재생 중');}
     catch{if(epoch===generation)say('재생을 시작하지 못했어요. 대화 녹음 재생 버튼을 다시 눌러주세요.');}finally{if(epoch===generation)render();}
   };
   $('voice-refresh').onclick=()=>{if(!active()&&!draft&&!working)load(page);};
   const playbackProgress=()=>{const player=$('voice-player'),format=value=>Number.isFinite(value)?Math.floor(value/60)+':'+String(Math.floor(value%60)).padStart(2,'0'):'';$('voice-playback-time').textContent=player.duration?format(player.currentTime)+' / '+format(player.duration):'';render();};
-  $('voice-player').onplay=render;$('voice-player').onpause=render;$('voice-player').onended=()=>{say('그날의 대화를 모두 들었어요.');render();};$('voice-player').ontimeupdate=playbackProgress;
+  $('voice-player').onplay=render;$('voice-player').onpause=render;$('voice-player').onended=()=>{say('재생 완료');render();};$('voice-player').ontimeupdate=playbackProgress;
   $('voice-delete').onclick=async()=>{
     if(!metadata.recording||working||!confirm('이 페이지의 저장된 음성 기록을 삭제할까요?'))return;working=true;render();
     try{metadata=await api(`/api/session/pages/${page}/voice`,'DELETE',{revision:metadata.revision});releaseURL();$('voice-player').hidden=true;showCues([]);say('저장된 음성 기록을 삭제했어요.');}

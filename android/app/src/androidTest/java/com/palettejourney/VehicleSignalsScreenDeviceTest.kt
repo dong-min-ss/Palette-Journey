@@ -22,7 +22,7 @@ class VehicleSignalsScreenDeviceTest {
   activity=monitor.waitForActivityWithTimeout(10000);assertNotNull(activity);instrumentation.removeMonitor(monitor)
   for(wait in 0..200){var ready=false;instrumentation.runOnMainSync{ready=find(activity.window.decorView,context.getString(R.string.vehicle_signals))?.isEnabled==true};if(ready)break;Thread.sleep(100)}
   val signals=instrumentation.addMonitor(VehicleSignalsActivity::class.java.name,null,false)
-  instrumentation.runOnMainSync{find(activity.window.decorView,context.getString(R.string.vehicle_signals))!!.performClick()}
+  instrumentation.runOnMainSync{find(activity.window.decorView,"개발용 시연 ＋")!!.performClick();val diagnostic=find(activity.window.decorView,context.getString(R.string.vehicle_signals))!!;assertTrue(diagnostic.isShown);diagnostic.performClick()}
   activity=signals.waitForActivityWithTimeout(10000);assertNotNull(activity);instrumentation.removeMonitor(signals)
   var drive=false;var moving=false;var parkAfterDrive=false;var captured=false
   try{for(i in 0..119){var value="";var speedText="";instrumentation.runOnMainSync{value=(activity.window.decorView.findViewWithTag<View>("gear-value") as TextView).text.toString();speedText=(activity.window.decorView.findViewWithTag<View>("speed-value") as TextView).text.toString()}
