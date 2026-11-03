@@ -19,7 +19,8 @@ test('recorder asks only after consent, pauses microphone, retains failed upload
     originals.set(key,Object.getOwnPropertyDescriptor(globalThis,key));Object.defineProperty(globalThis,key,{configurable:true,value});
   }
   try{
-    const editor=createVoiceDiary({getPage:()=>({id:'page'}),getToken:()=>'',api:async(_path,method)=>{if(method==='PUT')throw new Error('OFFLINE');return {revision:0,recording:null};}});
+    let metadataReads=0;
+    const editor=createVoiceDiary({getPage:()=>({id:'page'}),getToken:()=> 'test',api:async(_path,method)=>{if(method==='PUT')throw new Error('OFFLINE');metadataReads++;return {revision:0,recording:null};}});
     await editor.load('page');assert.equal(requests,0);
     await node('voice-start').onclick();assert.equal(requests,0);
     node('voice-consent').checked=true;await node('voice-start').onclick();assert.equal(requests,1);assert.equal(editor.blocked(),true);
@@ -28,10 +29,31 @@ test('recorder asks only after consent, pauses microphone, retains failed upload
     node('voice-next').onclick();assert.match(node('voice-question').textContent,/재미/);
     node('voice-stop').onclick();await Promise.resolve();assert.ok(stopped>=1);
     assert.equal(editor.blocked(),true);assert.equal(node('voice-save').disabled,false);
+    await editor.refresh();assert.equal(metadataReads,1); // An unsaved microphone draft must not be discarded.
     await node('voice-save').onclick();assert.equal(editor.blocked(),true);assert.equal(node('voice-download').disabled,false);assert.match(node('voice-status').textContent,/저장에 실패/);
     node('voice-discard').onclick();await Promise.resolve();assert.equal(editor.blocked(),false);
     editor.reset();
   }finally{for(const [key,descriptor] of originals){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
+});
+
+test('vehicle upload refresh prepares the current page, preserves playback and ignores late page responses',async()=>{
+ const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{paused:true,checked:false,pause(){this.paused=true;},play(){this.paused=false;return Promise.resolve();},removeAttribute(){},load(){},replaceChildren(){},focus(){}});return nodes.get(id);};
+ const originals=new Map();let revision=0,reads=0,downloads=0,deferred=null,credential='family';
+ for(const [key,value] of Object.entries({document:{getElementById:get,createElement:()=>({}),addEventListener(){}},window:{addEventListener(){}},fetch:async()=>{downloads++;return {ok:true,headers:{get:()=>String(revision)},blob:async()=>new Blob(['synthetic'])};}})){
+  originals.set(key,Object.getOwnPropertyDescriptor(globalThis,key));Object.defineProperty(globalThis,key,{configurable:true,value});
+ }
+ const result=()=>({revision,recording:revision?{mode:'vehicle-answer-original',cues:[]}:null});
+ try{
+  const editor=createVoiceDiary({getPage:()=>({id:'p'}),getToken:()=>credential,api:async()=>{reads++;return deferred?new Promise(r=>deferred=r):result();}});
+  await editor.load('p');await editor.refresh();assert.equal(downloads,0);
+  revision=1;await editor.refresh();assert.equal(downloads,1);assert.equal(get('voice-play').disabled,false);
+  await editor.refresh();assert.equal(downloads,1); // Unchanged metadata never reloads media.
+  await get('voice-play').onclick();const before=reads;revision=2;await editor.refresh();assert.equal(reads,before);assert.equal(downloads,1);
+  get('voice-player').pause();deferred=true;const pending=editor.refresh();const resolveOld=deferred;deferred=null;
+  await editor.load('other');const loaded=downloads;resolveOld({revision:99,recording:null});await pending;assert.equal(downloads,loaded);assert.equal(get('voice-play').disabled,false);
+  deferred=true;const switched=editor.refresh();const resolveFamily=deferred;deferred=null;credential='other-family';resolveFamily({revision:99,recording:null});await switched;assert.equal(downloads,loaded);
+  editor.reset();
+ }finally{for(const [key,descriptor] of originals){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
 });
 
 test('cancelling a pending permission request stops any late microphone stream',async()=>{

@@ -3,7 +3,7 @@ export const QUESTIONS=['오늘 어떤 일이 있었어?','어떤 게 가장 재
 export function createVoiceDiary({getPage,getToken,api}) {
   const $=id=>document.getElementById(id);
   let page=null,metadata={revision:0,recording:null},recorder=null,stream=null,pending=false,working=false,draft=null,url=null;
-  let question=0,cues=[],timer=null,elapsed=0,segment=0,generation=0,loading=false,ready=false;
+  let question=0,cues=[],timer=null,elapsed=0,segment=0,generation=0,loading=false,ready=false,refreshing=false;
   const active=()=>pending||recorder?.state==='recording'||recorder?.state==='paused';
   const duration=()=>Math.round(elapsed+(recorder?.state==='recording'?performance.now()-segment:0));
   const say=text=>$('voice-status').textContent=text;
@@ -71,6 +71,16 @@ export function createVoiceDiary({getPage,getToken,api}) {
       say('녹음 중이에요. 보호자가 질문을 읽고, 아이의 답을 기다려주세요.');render();if(document.hidden)pause();
     }catch(error){if(epoch!==generation)return;cleanup();pending=false;recorder=null;say(error.name==='NotAllowedError'?'마이크 권한이 없어 녹음을 시작하지 않았어요. 브라우저 권한을 확인해주세요.':'녹음을 시작하지 못했어요. 마이크 연결과 지원 형식을 확인해주세요.');render();}
   }
+  async function refresh(){
+    if(!page||!getToken()||refreshing||loading||active()||draft||working||$('voice-player').paused===false)return;
+    const epoch=generation,id=page,credential=getToken();refreshing=true;
+    try{
+      const result=await api(`/api/session/pages/${id}/voice`);
+      if(epoch!==generation||page!==id||getToken()!==credential||loading||active()||draft||working||$('voice-player').paused===false)return;
+      if(result.revision!==metadata.revision)await load(id);
+    }catch{/* Keep the current recording and manual retry available while offline. */}
+    finally{refreshing=false;}
+  }
   function stop(){if(pending){generation++;pending=false;say('녹음 시작을 취소했어요.');render();return;}if(!recorder||recorder.state==='inactive')return;elapsed=duration();working=true;recorder.stop();cleanup();render();}
   function pause(){if(recorder?.state==='recording'){elapsed=duration();recorder.pause();stream?.getAudioTracks().forEach(t=>t.enabled=false);say('쉬는 중이에요. 이 동안의 대화는 녹음하지 않아요.');}else if(recorder?.state==='paused'){stream?.getAudioTracks().forEach(t=>t.enabled=true);segment=performance.now();recorder.resume();say('녹음을 이어가요.');}render();}
   $('voice-start').onclick=start;$('voice-stop').onclick=stop;$('voice-pause').onclick=pause;
@@ -103,7 +113,7 @@ export function createVoiceDiary({getPage,getToken,api}) {
   };
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(recorder?.state==='recording')pause();$('voice-player').pause();render();}});
   window.addEventListener('pagehide',()=>{generation++;stop();cleanup();releaseURL();});
-  return {blocked:()=>!!(active()||draft||working),load,
+  return {blocked:()=>!!(active()||draft||working),load,refresh,
     opened(){if(getPage()?.id!==page||(!active()&&!draft&&!working))load(getPage()?.id??null);},
     reset(){generation++;pending=false;cleanup();load(null);}};
 }

@@ -252,7 +252,7 @@ $('invite-device').onclick=()=>busy($('invite-device'),async()=>{const invite=aw
 function receivePairingLink(){const joinFragment=/^#join=([a-f0-9]{24})$/.exec(location.hash);
 if(joinFragment){$('code').value=joinFragment[1];history.replaceState(null,'',location.pathname);$('connection').hidden=false;status('QR 연결 코드를 확인하고 여행에 연결하기를 눌러주세요.');}}
 window.addEventListener('hashchange',receivePairingLink);receivePairingLink();
-setInterval(()=>{if(!document.hidden)refreshConnection();},5000);refreshConnection();
+setInterval(()=>{if(!document.hidden){refreshConnection();voiceDiary.refresh();}},5000);refreshConnection();
 
 async function refreshRewards(){if(!token)return;const credential=token;try{
  const [colors,catalog,visits]=await Promise.all([api('/api/session/palette'),api('/api/session/catalog'),api('/api/session/visits')]);
