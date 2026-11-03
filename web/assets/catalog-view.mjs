@@ -1,5 +1,5 @@
 // Shared read-only collection navigation for the web and the offline Android renderer.
-export function mountCatalog({root,catalog,assetUrl=item=>item.asset,initialSelection={}}){
+export function mountCatalog({root,catalog,assetUrl=item=>item.asset,initialSelection={},onStickerSelect=null}){
  let data=catalog,selection={groupId:null,cityId:null,ownedOnly:false,...initialSelection};
  const el=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
  const acquired=item=>item.acquired===true;
@@ -12,7 +12,7 @@ export function mountCatalog({root,catalog,assetUrl=item=>item.asset,initialSele
   root.append(el('h3',title,'collection-section-title'));const grid=el('div',undefined,'collection-grid');
   for(const item of items.filter(i=>!selection.ownedOnly||acquired(i))){
    const card=el('article',undefined,'collection-card');card.dataset.contentId=item.id;
-   if(item.asset){const image=el('img');image.src=assetUrl(item);image.alt=item.name;card.append(image);}else{const swatch=el('div',undefined,'collection-swatch');swatch.style.backgroundColor=item.hex;swatch.setAttribute('aria-label',item.name);card.append(swatch);}
+   if(item.asset){const image=el('img');image.src=assetUrl(item);image.alt=item.name;if(onStickerSelect&&item.unlocked){const pick=button('',()=>onStickerSelect(item),'collection-sticker-pick');pick.setAttribute('aria-label',item.name+' 붙이기');pick.append(image,el('span','그림일기에 붙이기'));card.append(pick);}else card.append(image);}else{const swatch=el('div',undefined,'collection-swatch');swatch.style.backgroundColor=item.hex;swatch.setAttribute('aria-label',item.name);card.append(swatch);}
    const state=item.kind==='basic'?'기본 제공':item.developmentUnlocked?'개발용':acquired(item)?item.rewardSource==='simulation'?'보유 · 모의 보상':'보유':'미획득';
    card.append(el('h4',item.name),el('span',state,'collection-badge '+(acquired(item)?'is-owned':'is-locked')));
    const detail=el('details'),summary=el('summary','자세히');detail.append(summary);
