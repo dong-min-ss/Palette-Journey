@@ -362,3 +362,10 @@
 - Android assembleDebug/testDebugUnitTest18개 성공. 실제 콘솔 D/ACCEL→부산300m→P5초 해금→제주 선택·주행·해금→지역 방문 초기화 확인창→같은 가족 별도 참여자0획득·trip없음까지 첫 기기 시험1개 성공. 사용자 기존 데이터 대신 합성 가족 사용·종료 후 기존 시연 슬롯/활성 모드 복원. evidence/drive-busan.png에서 고대비 화면/진행률/5카드 확인.
 - 중간 에뮬레이터 종료로 후속 connectedDebugAndroidTest가 No connected devices로 실패했다. AVD 재실행/콘솔 포워딩 복원 후 최종 회귀 검증 재실행. 가족 연결 진입 버튼은 controls 스냅샷 이전에 추가해 접기 메뉴 이동을 보장했다. Python 별칭 접근 실패는 Node 편집으로 전환했고 잘못된 문서 patch는 적용 없이 수정했다. DRIVE_DEMO.md에 정확한 조작·모의 GPS와 실제 GPS 차이·휴대폰 연결 유지 주의점 작성.
 - 최종 connectedDebugAndroidTest4개 tests=4 failures=0 errors=0 성공: CollectionDeviceTest31.440초, DevDriveDeviceTest의 실제 두 도시 주행·초기화 및 가족 메뉴 진입2개, JourneyBookDeviceTest18.195초. 최종 APK 데이터 보존 설치 Success, Main 실행 완료. 실제 휴대폰 재잠금 육안 확인은 사용자가 이어서 할 수 있고 동일 가족 별도 참여자 API 반영은 기기 시험에서 확인했다.
+
+
+## 2026-11-03 — 차량 화면 고정 뒤로가기
+- 가족 연결/차량 상태 진단에서 누락된 복귀 조작을 추가하고 사전·여행책·저장한 이야기·업로드·개발자 주행 시연까지7개 화면을 VehicleActivity 공통 내비게이션으로 통일했다. 왼쪽 위 ‹ 뒤로가기/접근성 이름 뒤로가기는 스크롤·네트워크 작업 영역 밖에 고정되며 직전 Activity로 돌아간다. 기존 서로 다른 위치/이름의 돌아가기 버튼은 제거했다. Main은 진입 화면으로 유지한다.
+- onBackPressed 경로를 사용해 업로드 중 결과 대기 보호와 각 화면 onStop의 음원 정리·SDK 해제·시연 일시정지는 그대로 유지했다.
+- :app:assembleDebug 및 :app:testDebugUnitTest18개 성공. NavigationDeviceTest는 별도 합성 가족으로7개 화면의 맨 아래 스크롤 뒤 고정 버튼 복귀 및 Main→개발자 시연→가족 연결→시연→Main 중첩 복귀를 확인한다. 원래 가족 슬롯을 복원하고 시험 세션은 종료한다. 첫 기기 실행은 개발 서버가 꺼져 있어 fixture 생성 연결 실패였으며 서버를 재시작하고 재검증했다.
+- 최종 NavigationDeviceTest1개 tests=1 failures=0 errors=0,24.566초 성공. 7개 화면에서 스크롤 후 뒤로가기 및 중첩 이전 화면 복귀 확인. evidence/vehicle-back.png로 가족 연결 상단 고정 버튼을 시각 확인했다. 최종 APK install -r Success, Main 재실행 완료.

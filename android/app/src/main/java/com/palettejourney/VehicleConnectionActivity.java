@@ -14,7 +14,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 
 /** Emulator-only pairing; microphone archives remain on the device. */
-public class VehicleConnectionActivity extends Activity {
+public class VehicleConnectionActivity extends VehicleActivity {
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private final Handler handler=new Handler();
     private TextView status,codeLabel,rewards;private EditText code,origin;private Spinner pages;private ImageView qr;

@@ -17,7 +17,7 @@ import ai.pleos.playground.tts.listener.EventListener;
 import ai.pleos.playground.tts.listener.OnInitializeListener;
 
 /** Reconstructed question TTS + original recorded answers; never opens a microphone. */
-public class RecordingsActivity extends Activity {
+public class RecordingsActivity extends VehicleActivity {
     private final Handler main=new Handler(Looper.getMainLooper());
     private VoiceArchive archive;
     private List<VoiceArchive.Saved> saved=Collections.emptyList();
@@ -45,7 +45,6 @@ public class RecordingsActivity extends Activity {
         stop=new Button(this);stop.setText("재생 중지");actions.addView(stop);
         delete=new Button(this);delete.setText("선택한 녹음 삭제");actions.addView(delete);root.addView(actions);
         upload=new Button(this);upload.setText("선택한 이야기를 웹 페이지에 올리기");root.addView(upload);upload.setOnClickListener(v->{VoiceArchive.Saved value=selected();if(value!=null&&allowed()&&!playing)startActivity(new android.content.Intent(this,UploadStoryActivity.class).putExtra("archiveId",value.id));});
-        Button back=new Button(this);back.setText("대화 화면으로 돌아가기");back.setOnClickListener(v->finish());root.addView(back);
         ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         try{archive=new VoiceArchive(new File(getFilesDir(),"voice-archives"));reload();}catch(Exception error){status.setText("저장된 이야기를 읽지 못했어요.");}
         selection.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){

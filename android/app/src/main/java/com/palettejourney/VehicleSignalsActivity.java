@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
 /** Platform read diagnostic with explicit emulator-only GPS reward collection. Driver controls stay locked. */
-public class VehicleSignalsActivity extends Activity {
+public class VehicleSignalsActivity extends VehicleActivity {
     private final Handler handler=new Handler();
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
     private final ExecutorService network=Executors.newSingleThreadExecutor();

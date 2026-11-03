@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 import org.json.*;
 
 /** Explicit upload to a frozen, verified family page; never records a microphone. */
-public class UploadStoryActivity extends Activity {
+public class UploadStoryActivity extends VehicleActivity {
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private final Handler main=new Handler();
     private TextView status,target;private Button upload;
@@ -26,7 +26,6 @@ public class UploadStoryActivity extends Activity {
         TextView notice=new TextView(this);notice.setText("선택한 답변 원음과 질문·확인한 답변 문장을 연결된 가족 서버에 저장해요. 질문 음성은 포함하지 않아요. 차량 원본은 그대로 남아요. 기존 페이지 녹음은 덮어쓰지 않아요.");DevUi.fold(root,"저장 안내").addView(notice);
         status=new TextView(this);status.setTextSize(20);root.addView(status);
         upload=new Button(this);upload.setText("이 페이지에 녹음 올리기");upload.setEnabled(false);root.addView(upload);
-        Button back=new Button(this);back.setText("돌아가기");root.addView(back);back.setOnClickListener(v->{if(!uploading)finish();else status.setText("전송 결과를 확인 중이에요. 잠시 기다려주세요.");});
         getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,()->{if(!uploading)finish();else status.setText("전송 결과를 확인 중이에요. 잠시 기다려주세요.");});
         ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         if(!BuildConfig.DEBUG||!("ranchu".equals(Build.HARDWARE)||"goldfish".equals(Build.HARDWARE))){status.setText("차량 상태 미확인: 업로드 조작은 잠겨 있어요.");return;}

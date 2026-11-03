@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
 /** Read-only family book. The existing emulator gate and platform driving restrictions remain. */
-public class JourneyBookActivity extends Activity {
+public class JourneyBookActivity extends VehicleActivity {
     private final Handler main=new Handler();
     private final ExecutorService network=Executors.newSingleThreadExecutor();
     private final List<JSONObject> entries=new ArrayList<>();
@@ -27,13 +27,13 @@ public class JourneyBookActivity extends Activity {
     @Override public void onCreate(Bundle state){super.onCreate(state);
         File[] stale=getCacheDir().listFiles((dir,name)->name.startsWith("book-audio-")&&name.endsWith(".media"));if(stale!=null)for(File file:stale)file.delete();
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(DevUi.dp(this,24),DevUi.dp(this,12),DevUi.dp(this,24),DevUi.dp(this,12));root.setBackgroundColor(DevUi.BG);
-        LinearLayout toolbar=new LinearLayout(this);TextView title=DevUi.text(this,"여행책 · 가족 비공개",28);toolbar.addView(title,new LinearLayout.LayoutParams(0,-2,1));refresh=new Button(this);refresh.setText("새로고침");toolbar.addView(refresh);Button back=new Button(this);back.setText("돌아가기");toolbar.addView(back);root.addView(toolbar);
+        LinearLayout toolbar=new LinearLayout(this);TextView title=DevUi.text(this,"여행책 · 가족 비공개",28);toolbar.addView(title,new LinearLayout.LayoutParams(0,-2,1));refresh=new Button(this);refresh.setText("새로고침");toolbar.addView(refresh);root.addView(toolbar);
         picker=new Spinner(this);picker.setTag("book-picker");root.addView(picker);heading=DevUi.text(this,"그림일기를 불러오는 중",26);heading.setTag("book-heading");root.addView(heading);
         drawing=new WebView(this);drawing.setTag("book-drawing");drawing.setBackgroundColor(DevUi.PANEL);drawing.getSettings().setJavaScriptEnabled(true);drawing.getSettings().setAllowFileAccess(false);drawing.getSettings().setAllowContentAccess(false);drawing.getSettings().setBlockNetworkLoads(true);drawing.getSettings().setDomStorageEnabled(false);drawing.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);drawing.setWebViewClient(new WebViewClient(){@Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return true;}});root.addView(drawing,new LinearLayout.LayoutParams(-1,0,1));
         caption=DevUi.text(this,"",20);caption.setMaxLines(2);root.addView(caption);
         seek=new SeekBar(this);seek.setTag("book-seek");root.addView(seek);LinearLayout controls=new LinearLayout(this);previous=new Button(this);previous.setText("이전");play=new Button(this);play.setText("대화 듣기");play.setTag("book-play");next=new Button(this);next.setText("다음");controls.addView(previous);controls.addView(play);controls.addView(next);root.addView(controls);
         LinearLayout footer=new LinearLayout(this);status=DevUi.text(this,"가족 연결 확인 중",20);status.setTag("book-status");footer.addView(status,new LinearLayout.LayoutParams(0,-2,1));clock=DevUi.text(this,"",20);footer.addView(clock);root.addView(footer);setContentView(root);DevUi.styleTree(root);
-        back.setOnClickListener(v->finish());refresh.setOnClickListener(v->loadLibrary());previous.setOnClickListener(v->picker.setSelection(index-1));next.setOnClickListener(v->picker.setSelection(index+1));play.setOnClickListener(v->toggle());
+        refresh.setOnClickListener(v->loadLibrary());previous.setOnClickListener(v->picker.setSelection(index-1));next.setOnClickListener(v->picker.setSelection(index+1));play.setOnClickListener(v->toggle());
         picker.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int position,long id){if(!binding&&position!=index)open(position);}});
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onStartTrackingTouch(SeekBar bar){scrubbing=true;}public void onProgressChanged(SeekBar bar,int value,boolean user){}public void onStopTrackingTouch(SeekBar bar){scrubbing=false;if(player!=null&&!preparing){player.seekTo(bar.getProgress());completed=false;}}});buttons();
     }

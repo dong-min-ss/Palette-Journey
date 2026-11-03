@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /** Console speed/gear drive a fast, explicitly virtual route. Never writes vehicle GPS or normal family rewards. */
-public class DevDriveActivity extends Activity {
+public class DevDriveActivity extends VehicleActivity {
     private final Handler main=new Handler();private final ExecutorService network=Executors.newSingleThreadExecutor(),signals=Executors.newSingleThreadExecutor();
     private volatile boolean active;private volatile int generation;private volatile Float speed;private volatile Integer gear;private Car car;private CarPropertyManager properties;
     private TextView metrics,stage,distance,parking,coordinates;private ProgressBar routeProgress,parkProgress;private WebView preview;
@@ -25,7 +25,7 @@ public class DevDriveActivity extends Activity {
     private Button button(LinearLayout parent,String name,Runnable action){Button b=new Button(this);b.setText(name);DevUi.button(b);parent.addView(b,new LinearLayout.LayoutParams(-1,-2));b.setOnClickListener(v->action.run());return b;}
     @Override public void onCreate(Bundle state){super.onCreate(state);
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(DevUi.dp(this,20),DevUi.dp(this,12),DevUi.dp(this,20),DevUi.dp(this,12));root.setBackgroundColor(DevUi.BG);
-        LinearLayout header=new LinearLayout(this);header.addView(DevUi.text(this,"개발자 주행 시연",30),new LinearLayout.LayoutParams(0,-2,1));Button back=new Button(this);back.setText("돌아가기");DevUi.button(back);header.addView(back);back.setOnClickListener(v->finish());root.addView(header);root.addView(DevUi.text(this,"콘솔 → 모의 이동 · 실제 GPS와 별도",20));
+        LinearLayout header=new LinearLayout(this);header.addView(DevUi.text(this,"개발자 주행 시연",30),new LinearLayout.LayoutParams(0,-2,1));root.addView(header);root.addView(DevUi.text(this,"콘솔 → 모의 이동 · 실제 GPS와 별도",20));
         LinearLayout body=new LinearLayout(this);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));ScrollView scroll=new ScrollView(this);LinearLayout left=new LinearLayout(this);left.setOrientation(1);left.setPadding(0,0,DevUi.dp(this,16),0);scroll.addView(left);body.addView(scroll,new LinearLayout.LayoutParams(0,-1,0.42f));
         metrics=DevUi.text(this,"속도 — · 기어 —",30);metrics.setTag("drive-metrics");left.addView(metrics);left.addView(DevUi.text(this,"도착지 선택",24));destinations=new GridLayout(this);destinations.setColumnCount(3);left.addView(destinations);
         stage=DevUi.text(this,"가족 연결 확인 중",24);stage.setTag("drive-stage");left.addView(stage);distance=DevUi.text(this,"주행 0 / 300m",22);distance.setTag("drive-distance");left.addView(distance);routeProgress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);routeProgress.setMax(300);left.addView(routeProgress,new LinearLayout.LayoutParams(-1,DevUi.dp(this,18)));
