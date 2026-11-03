@@ -31,6 +31,7 @@
         <activity android:name=".VehicleSignalsActivity" android:exported="false" />
         <activity android:name=".RecordingsActivity" android:exported="false" />
         <activity android:name=".JourneyBookActivity" android:exported="false" />
+        <activity android:name=".CollectionActivity" android:exported="false" />
     </application>
 
 </manifest>

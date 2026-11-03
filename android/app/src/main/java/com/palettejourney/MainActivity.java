@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private TextView currentQuestion, conversationHistory, conversationState;
     private Button skipConversation, endConversation;
     private final List<VoiceArchive.Entry> recordedEntries=new ArrayList<>();
-    private Button saveRecording,openRecordings,webConnection,journeyBook;
+    private Button saveRecording,openRecordings,webConnection,journeyBook,collectionButton;
     private boolean recordingSaved,foreground,pendingRecordStart;
     private void clearRecordedDrafts() {
         for(VoiceArchive.Entry entry:recordedEntries)if(entry.audio!=null)entry.audio.delete();
@@ -105,6 +105,7 @@ public class MainActivity extends Activity {
         if(saveRecording!=null)saveRecording.setEnabled(!conversation.active()&&!recordingSaved&&!answer.busy()&&!speechBusy&&recordedEntries.stream().anyMatch(entry->!entry.skipped));
         if(webConnection!=null)webConnection.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(openRecordings!=null)openRecordings.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
+        if(collectionButton!=null)collectionButton.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(journeyBook!=null)journeyBook.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
     }
     private void playSpeechQuestion() {
@@ -147,22 +148,6 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.rgb(247, 246, 242));
         addText(root, "Palette Journey", 36);
         addText(root, "가족과 남기는 여행 이야기 · 시뮬레이션", 20);
-        LinearLayout paletteDetails=DevUi.fold(root,"기본 팔레트");
-        LinearLayout palette = new LinearLayout(this);
-        String[] colors = {"#F44336", "#FF9800", "#FFEB3B", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#795548", "#FFFFFF", "#000000", "#9E9E9E"};
-        String[] names = {"빨강", "주황", "노랑", "초록", "파랑", "보라", "핑크", "브라운", "화이트", "블랙", "그레이"};
-        for (int i = 0; i < colors.length; i++) {
-            TextView swatch = new TextView(this);
-            swatch.setTag("palette-swatch");
-            swatch.setText(names[i]);
-            swatch.setContentDescription(names[i]);
-            swatch.setTextColor(i == 9 ? Color.WHITE : Color.BLACK);
-            swatch.setBackgroundColor(Color.parseColor(colors[i]));
-            swatch.setGravity(android.view.Gravity.CENTER);
-            palette.addView(swatch, new LinearLayout.LayoutParams(0, 100, 1));
-        }
-        paletteDetails.addView(palette);
-        addText(paletteDetails, "기본 11색 · 가입 시 컬러티켓 1장", 20);
         LinearLayout speechDetails=DevUi.fold(root,"음성 연결 설정");
         addText(speechDetails, "에뮬레이터 전용 · Pleos TTS", 20);
         addText(root, "오늘의 이야기", 28);
@@ -231,10 +216,11 @@ public class MainActivity extends Activity {
         webConnection=new Button(this);webConnection.setText(R.string.family_connection);root.addView(webConnection);webConnection.setOnClickListener(v->startActivity(new Intent(this,VehicleConnectionActivity.class)));
         openRecordings.setOnClickListener(v->{if(openRecordings.isEnabled())startActivity(new Intent(this,RecordingsActivity.class));});
         // Primary destinations stay above the conversation; reference information stays collapsed below.
-        DevUi.moveTo(root,(android.view.View)paletteDetails.getParent());DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
+        DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         ((android.view.ViewGroup)openRecordings.getParent()).removeView(openRecordings);root.addView(openRecordings,2,new LinearLayout.LayoutParams(-1,-2));
         root.removeView(webConnection);root.addView(webConnection,2,new LinearLayout.LayoutParams(-1,-2));
         journeyBook=new Button(this);journeyBook.setText("여행책 감상");root.addView(journeyBook,2,new LinearLayout.LayoutParams(-1,-2));journeyBook.setOnClickListener(v->startActivity(new Intent(this,JourneyBookActivity.class)));
+        collectionButton=new Button(this);collectionButton.setText("색·스티커 사전");root.addView(collectionButton,3,new LinearLayout.LayoutParams(-1,-2));collectionButton.setOnClickListener(v->startActivity(new Intent(this,CollectionActivity.class)));
         renderConversation();
         answerStatus.setText("동의 후 대화를 시작해주세요.");
         answerText.setText("");

@@ -24,6 +24,7 @@ public class VehicleSignalsActivity extends Activity {
     private TextView speedValue,gearValue,gpsValue,rewardValue,detailValue,assetValue;
     private volatile boolean active=false;
     private boolean collect=false; private volatile String participant=null; private LocationData latest=null; private long lastSent=0,lastCatalog=0; private String rewardState="GPS 보상 시연 중지됨";
+    private String catalogRegion="gyeongju";
     private String locationState="위치 수신 대기",motionState="차량 상태 수신 대기";
     private void render(){if(!active||speedValue==null)return;
         Float speed=vehicleSpeed;Integer gear=vehicleGear;
@@ -50,7 +51,7 @@ public class VehicleSignalsActivity extends Activity {
         android.widget.LinearLayout gearCard=card(metrics,"기어");android.widget.LinearLayout.LayoutParams b=new android.widget.LinearLayout.LayoutParams(0,-2,1);b.setMargins(DevUi.dp(this,8),DevUi.dp(this,12),0,DevUi.dp(this,16));gearCard.setLayoutParams(b);
         gearValue=DevUi.text(this,"—",56);gearValue.setTag("gear-value");gearValue.setTypeface(null,1);gearCard.addView(gearValue);
         android.widget.LinearLayout gps=card(root,"GPS 좌표");gpsValue=DevUi.text(this,"위치 수신 대기",26);gps.addView(gpsValue);
-        android.widget.LinearLayout reward=card(root,"경주 방문 보상");assetValue=DevUi.text(this,"보유 콘텐츠 확인 중",22);assetValue.setTag("reward-assets");reward.addView(assetValue);rewardValue=DevUi.text(this,rewardState,24);reward.addView(rewardValue);reward.addView(DevUi.text(this,"시연 구역 120초 체류 · 실제 방문 인증 아님",20));
+        android.widget.LinearLayout reward=card(root,"지역 방문 보상");assetValue=DevUi.text(this,"보유 콘텐츠 확인 중",22);assetValue.setTag("reward-assets");reward.addView(assetValue);rewardValue=DevUi.text(this,rewardState,24);reward.addView(rewardValue);reward.addView(DevUi.text(this,"시연 구역 120초 체류 · 실제 방문 인증 아님",20));
         android.widget.Button toggle=new android.widget.Button(this);toggle.setText(R.string.gps_reward_simulation);DevUi.button(toggle);reward.addView(toggle,new android.widget.LinearLayout.LayoutParams(-1,-2));
         toggle.setOnClickListener(v->{collect=!collect;lastSent=0;rewardState=collect?"GPS 보상 시연 진행 중":"GPS 보상 시연 중지됨";if(!collect)network.execute(()->sendReset());render();});
         android.widget.Button details=new android.widget.Button(this);details.setText("SDK·수신 상세 펼치기");DevUi.button(details);root.addView(details);
@@ -82,8 +83,9 @@ public class VehicleSignalsActivity extends Activity {
         if(participant==null)participant=VehicleApi.load(this);if(participant==null)throw new IllegalStateException();
         org.json.JSONObject catalog=VehicleApi.request("/api/session/catalog","GET",null,participant);
         StringBuilder list=new StringBuilder();int colors=0,stickers=0;
-        for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!"gyeongju".equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(owned){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(!owned?" · 잠김":item.optBoolean("developmentUnlocked")?" · 개발용":"simulation".equals(item.optString("rewardSource"))?" · 모의 보상":" · 해금됨").append("\n");}}
-        String value="경주 색 "+colors+"/3 · 스티커 "+stickers+"/2\n"+list;
+        for(String kind:new String[]{"colors","stickers"}){org.json.JSONArray values=catalog.getJSONArray(kind);for(int i=0;i<values.length();i++){org.json.JSONObject item=values.getJSONObject(i);if(!catalogRegion.equals(item.optString("regionId")))continue;boolean owned=item.getBoolean("unlocked");if(item.optBoolean("acquired")){if(kind.equals("colors"))colors++;else stickers++;}list.append(item.getString("name")).append(!owned?" · 잠김":item.optBoolean("developmentUnlocked")?" · 개발용":"simulation".equals(item.optString("rewardSource"))?" · 모의 보상":" · 해금됨").append("\n");}}
+        String regionName="경주";org.json.JSONArray cities=catalog.getJSONArray("cities");for(int i=0;i<cities.length();i++)if(catalogRegion.equals(cities.getJSONObject(i).getString("id")))regionName=cities.getJSONObject(i).getString("name");
+        String value=regionName+" 색 "+colors+"/3 · 스티커 "+stickers+"/2\n"+list;
         handler.post(()->{if(active)assetValue.setText(value);});
     }catch(Exception e){handler.post(()->{if(active){assetValue.setText(connectionMessage(e));if("HTTP 401".equals(e.getMessage())){collect=false;rewardState="시연 중단 · 가족 연결 만료";render();}}});}}
     private void sendReset(){if(participant!=null)try{VehicleApi.request("/api/session/visits/vehicle","POST",new org.json.JSONObject().put("source","pleos-emulator").put("valid",false),participant);}catch(Exception ignored){}}
@@ -105,7 +107,8 @@ public class VehicleSignalsActivity extends Activity {
             org.json.JSONObject body=new org.json.JSONObject().put("source","pleos-emulator").put("valid",sample!=null);
             if(sample!=null)body.put("latitude",sample.getLatitude()).put("longitude",sample.getLongitude()).put("measuredAt",sample.getTimestampMillis());
             org.json.JSONObject result=VehicleApi.request("/api/session/visits/vehicle","POST",body,participant);
-            String message=result.getJSONArray("rewards").length()>0?"경주 모의 방문 보상 지급 완료 · 색3개/스티커2개":!result.optBoolean("locationFresh")?"위치 없음·오래된 위치: 체류 초기화":!result.optBoolean("inRegion")?"GPS 수신 정상 · 경주 밖에서 대기 중":"GPS 수신 정상 · 경주 체류 "+result.optLong("dwellMs")/1000+" / 120초";
+            if(!result.isNull("regionId"))catalogRegion=result.getString("regionId");String regionName=result.optString("regionName","시연 구역");boolean collected=false;org.json.JSONArray receipts=result.getJSONArray("rewards");for(int i=0;i<receipts.length();i++)if(catalogRegion.equals(receipts.getJSONObject(i).getString("regionId")))collected=true;
+            String message=!result.optBoolean("locationFresh")?"위치 없음·오래된 위치: 체류 초기화":!result.optBoolean("inRegion")?"GPS 수신 정상 · 시연 구역 밖에서 대기 중":collected?regionName+" 모의 방문 보상 지급 완료 · 색3개/스티커2개":"GPS 수신 정상 · "+regionName+" 체류 "+result.optLong("dwellMs")/1000+" / 120초";
             handler.post(()->{if(active){rewardState=message;render();}});
         }catch(Exception e){handler.post(()->{if(active){rewardState=connectionMessage(e);if("HTTP 401".equals(e.getMessage()))collect=false;render();}});}}
         if(refresh||sending)refreshAssets();}finally{networkBusy=false;}});}

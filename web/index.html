@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Palette Journey · 여행 그림일기</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.mjs"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Palette Journey · 여행 그림일기</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/catalog-view.css"><script type="module" src="/app.mjs"></script></head>
 <body>
 <main>
   <header><a href="/" class="brand">Palette Journey<span>여행의 색을, 나의 그림으로</span></a><span class="badge">동승자 컬러링</span></header>
@@ -36,7 +36,7 @@
       <form id="unlock-form"><label for="personal">나만의 색 추가</label><div class="actions"><input id="personal" type="color" value="#568A91"><button id="unlock" type="submit" class="secondary">티켓 1장으로 해금</button></div></form>
     </div>
 </section>
-      <section id="panel-catalog" class="menu-panel" aria-labelledby="heading-catalog" hidden><h2 id="heading-catalog">여행의 색과 스티커</h2>    <details class="card catalog"><summary>색깔·스티커 사전 · 경주</summary><p class="simulation-label">시뮬레이션 · 실제 방문 인증 아님</p><details class="quiet-details"><summary>수집 안내</summary><p id="catalog-note" class="hint"></p></details><details id="mock-visit" class="quiet-details" hidden><summary>개발용 시연</summary><p>경주 진입·120초 체류를 가속 재생해요.</p><button id="mock-route" class="secondary">경주 진입·체류 모의 경로 실행</button><p id="visit-state" class="hint"></p></details><h2>기본 스티커</h2><div id="basic-stickers" class="catalog-grid"></div><h2>경주 방문으로 만나는 스티커</h2><div id="regional-stickers" class="catalog-grid"></div><h2>경주의 색 3가지</h2><div id="regional-colors" class="catalog-grid"></div></details>
+      <section id="panel-catalog" class="menu-panel" aria-labelledby="heading-catalog" hidden><h2 id="heading-catalog">색·스티커 사전</h2><div id="collection-browser"></div><details class="quiet-details"><summary>수집 안내</summary><p id="catalog-note" class="hint"></p></details><details id="mock-visit" class="quiet-details" hidden><summary>개발용 시연</summary><p>경주 진입·120초 체류를 가속 재생해요.</p><button id="mock-route" class="secondary">경주 진입·체류 모의 경로 실행</button><p id="visit-state" class="hint"></p></details>
 </section>
     </aside>
     <section class="sketch-workspace" aria-label="스케치북"><div class="entry-heading"><time id="entry-date-display"></time><h1 id="entry-title-display"></h1></div>    <div class="canvas card"><div class="drawing-surface"><canvas id="drawing" width="600" height="400" aria-label="자유롭게 그리는 그림일기"></canvas><div id="sticker-layer"></div></div></div>

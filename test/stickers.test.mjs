@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {AccountStore} from '../backend/store.mjs';
 import {DiaryStore} from '../backend/diaries.mjs';
 import {ownedStickers} from '../backend/stickers.mjs';
-import {contentCatalog} from '../core/catalog.mjs';
+import {contentCatalog,STICKERS} from '../core/catalog.mjs';
 const credential=()=>randomBytes(32).toString('hex');
 const placement=(id,stickerId='basic-star')=>({id,stickerId,x:100,y:100,width:120,height:150,strokes:[{tool:'paint',color:'#F44336',width:12,points:[[100,100],[200,200]]}]});
 test('reusable sticker instances keep independent paint, geometry, restart and backwards compatibility',()=>{
@@ -43,7 +43,7 @@ test('server denies locked regional, duplicate, overflow, unknown and unowned st
   }finally{accounts.close();}
 });
 test('all sticker assets are monochrome and outline overlays have no opaque fills',()=>{
-  for(const asset of ['star','heart','cheomseongdae','silla-crown']){
+  for(const asset of STICKERS.map(s=>s.asset.split('/').at(-1).slice(0,-4))){
     const svg=readFileSync(new URL(`../web/assets/stickers/${asset}.svg`,import.meta.url),'utf8');
     assert.ok([...svg.matchAll(/#[0-9A-Fa-f]{6}/g)].every(m=>['#FFFFFF','#111111'].includes(m[0])));
     const outline=readFileSync(new URL(`../web/assets/stickers/${asset}-outline.svg`,import.meta.url),'utf8');
@@ -70,7 +70,7 @@ test('explicit development unlock permits regional save without fabricating visi
     accounts.register(owner);accounts.joinSession(member,accounts.createSession(owner).code);
     accounts.developmentStickerAccess=true;
     const catalog=contentCatalog(accounts.get(owner),ownedStickers(accounts,member),true);
-    assert.equal(catalog.stickers.filter(s=>s.developmentUnlocked&&s.unlocked).length,2);
+    assert.equal(catalog.stickers.filter(s=>s.developmentUnlocked&&s.unlocked).length,10);
     let page=diaries.page(member,diaries.library(member).pages[0].id);
     page=diaries.savePage(member,page.id,{...page,stickers:[placement('tower','gyeongju-cheomseongdae'),placement('crown','gyeongju-silla-crown')]});
     assert.equal(page.stickers.length,2);

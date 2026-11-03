@@ -1,0 +1,108 @@
+[
+  {
+    "id": "basic-star",
+    "name": "반짝 별",
+    "kind": "basic",
+    "regionId": null,
+    "asset": "/assets/stickers/star.svg",
+    "description": "반짝이는 여행의 순간을 꾸며요."
+  },
+  {
+    "id": "basic-heart",
+    "name": "따뜻한 마음",
+    "kind": "basic",
+    "regionId": null,
+    "asset": "/assets/stickers/heart.svg",
+    "description": "함께한 가족에게 마음을 전해요."
+  },
+  {
+    "id": "gyeongju-cheomseongdae",
+    "name": "경주 첨성대",
+    "kind": "regional",
+    "regionId": "gyeongju",
+    "asset": "/assets/stickers/cheomseongdae.svg",
+    "description": "별을 바라보던 첨성대를 떠올리며 여행을 기록해요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "gyeongju-silla-crown",
+    "name": "반짝이는 신라 금관",
+    "kind": "regional",
+    "regionId": "gyeongju",
+    "asset": "/assets/stickers/silla-crown.svg",
+    "description": "신라의 금관에서 영감을 얻은 상상 속 왕관이에요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "seoul-palace",
+    "name": "서울 궁궐",
+    "kind": "regional",
+    "regionId": "seoul",
+    "asset": "/assets/stickers/seoul-palace.svg",
+    "description": "단청 지붕과 궁궐의 문을 떠올리는 스티커예요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "seoul-tower",
+    "name": "남산 서울타워",
+    "kind": "regional",
+    "regionId": "seoul",
+    "asset": "/assets/stickers/seoul-tower.svg",
+    "description": "서울의 하늘을 바라보는 전망대예요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "busan-bridge",
+    "name": "부산 광안대교",
+    "kind": "regional",
+    "regionId": "busan",
+    "asset": "/assets/stickers/busan-bridge.svg",
+    "description": "바다 위로 이어지는 다리를 담았어요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "busan-seagull",
+    "name": "부산 갈매기",
+    "kind": "regional",
+    "regionId": "busan",
+    "asset": "/assets/stickers/busan-seagull.svg",
+    "description": "부산 바다 위를 날아가는 갈매기예요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "jeju-hareubang",
+    "name": "제주 돌하르방",
+    "kind": "regional",
+    "regionId": "jeju",
+    "asset": "/assets/stickers/jeju-hareubang.svg",
+    "description": "제주 돌의 표정을 가진 돌하르방이에요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "jeju-tangerine",
+    "name": "제주 감귤",
+    "kind": "regional",
+    "regionId": "jeju",
+    "asset": "/assets/stickers/jeju-tangerine.svg",
+    "description": "제주 여행에서 만나는 동그란 감귤이에요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "gangneung-pine",
+    "name": "강릉 소나무",
+    "kind": "regional",
+    "regionId": "gangneung",
+    "asset": "/assets/stickers/gangneung-pine.svg",
+    "description": "해변의 바람을 맞는 소나무예요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  },
+  {
+    "id": "gangneung-coffee",
+    "name": "강릉 커피",
+    "kind": "regional",
+    "regionId": "gangneung",
+    "asset": "/assets/stickers/gangneung-coffee.svg",
+    "description": "바다를 보며 쉬는 따뜻한 커피 한 잔이에요.",
+    "acquisition": "모의 방문 구역에서 120초 체류"
+  }
+]

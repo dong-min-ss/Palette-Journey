@@ -1,3 +1,4 @@
+import {mountCatalog} from './catalog-view.mjs';
 import {createVoiceDiary} from './voice.mjs';
 import {createStickerEditor} from './stickers.mjs';
 const $ = id => document.getElementById(id);
@@ -83,27 +84,19 @@ async function load() {
   if(page)await openPage(page.id);else{currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
 }
-let catalogSignature=null;
+let catalogSignature=null,catalogView=null;
 function renderCatalog(catalog){
-  const signature=JSON.stringify(catalog);if(signature===catalogSignature)return;catalogSignature=signature;
-  stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
-  for(const item of catalog.stickers){const button=document.createElement('button');button.className='secondary';button.disabled=!item.unlocked;
-    const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name;const badge=document.createElement('small');badge.textContent=item.developmentUnlocked?'개발용':item.unlocked?'붙이기':'잠김';button.append(image,label,badge);
-    button.onclick=()=>{stickerEditor.add(item.id);setTool('move');$('close-menu').click();};$('sticker-picker').append(button);}
-  $('catalog-note').textContent=catalog.note;
-  for(const id of ['basic-stickers','regional-stickers','regional-colors'])$(id).replaceChildren();
-  for(const item of [...catalog.stickers,...catalog.colors]){
-    const card=document.createElement('article');card.className='catalog-item';
-    if(item.asset){const img=document.createElement('img');img.src=item.asset;img.alt=item.name;img.width=100;img.height=100;card.append(img);}
-    else{const swatch=document.createElement('div');swatch.className='catalog-color';swatch.style.backgroundColor=item.hex;card.append(swatch);}
-    const title=document.createElement('h3');title.textContent=item.name;
-    const description=document.createElement('p');description.textContent=item.description;
-    const state=document.createElement('span');state.className='content-state '+(item.unlocked?'owned':'locked');state.textContent=item.kind==='basic'?'기본':item.developmentUnlocked?'개발용':item.unlocked?(item.rewardSource==='simulation'?'모의 보상':'해금됨'):'잠김';
-    const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='자세히';details.append(summary,description);
-    const provenance=document.createElement('p');provenance.textContent=item.developmentUnlocked?'개발용 해금 · 방문 인증 아님':item.rewardSource==='simulation'?'모의 방문 보상 · 실제 방문 인증 아님':item.acquisition??'처음부터 제공';details.append(provenance);
-    card.append(title,state,details);$(item.asset?(item.kind==='basic'?'basic-stickers':'regional-stickers'):'regional-colors').append(card);
-  }
+ const signature=JSON.stringify(catalog);if(signature===catalogSignature)return;catalogSignature=signature;
+ stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
+ for(const item of catalog.stickers.filter(s=>s.unlocked)){
+  const button=document.createElement('button');button.className='secondary';
+  const image=document.createElement('img');image.src=item.asset;image.alt='';const label=document.createElement('span');label.textContent=item.name;const badge=document.createElement('small');badge.textContent=item.developmentUnlocked?'개발용':'붙이기';button.append(image,label,badge);
+  button.onclick=()=>{stickerEditor.add(item.id);setTool('move');$('close-menu').click();};$('sticker-picker').append(button);
+ }
+ $('catalog-note').textContent=catalog.note;
+ if(catalogView)catalogView.update(catalog);else catalogView=mountCatalog({root:$('collection-browser'),catalog});
 }
+
 function renderEntryHeading(title=$('page-title').value){$('entry-date-display').textContent=$('page-date').value||currentPage?.entryDate||'';$('entry-title-display').textContent=title||'나의 그림일기';}
 function options(id,rows,value){$(id).replaceChildren(...rows.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=(id==='page'&&row.entryDate?row.entryDate+' · ':'')+(row.title??row.name);return option;}));if(rows.some(r=>r.id===value))$(id).value=value;}
 function renderLibrary(){
@@ -239,7 +232,7 @@ function openMenu(name){
   $('menu-drawer').hidden=!name;
   for(const button of document.querySelectorAll('[data-panel]'))button.setAttribute('aria-expanded',String(button.dataset.panel===name));
   for(const panel of document.querySelectorAll('.menu-panel'))panel.hidden=panel.id!=='panel-'+name;
-  if(name){if(name==='catalog')document.querySelector('#panel-catalog details').open=true;$('close-menu').focus();}
+  if(name){$('close-menu').focus();}
 }
 for(const button of document.querySelectorAll('[data-panel]'))button.onclick=()=>openMenu(openedPanel===button.dataset.panel?null:button.dataset.panel);
 $('close-menu').onclick=()=>{const previous=openedPanel;openMenu(null);document.querySelector('[data-panel="'+previous+'"]').focus();};
@@ -261,7 +254,7 @@ setInterval(()=>{if(!document.hidden){refreshConnection();voiceDiary.refresh();}
 async function refreshRewards(){if(!token)return;const credential=token;try{
  const [colors,catalog,visits]=await Promise.all([api('/api/session/palette'),api('/api/session/catalog'),api('/api/session/visits')]);
  if(token!==credential)return;palette=colors;renderPalette();renderCatalog(catalog);$('mock-visit').hidden=!visits.simulationEnabled;
- $('visit-state').textContent=visits.rewards.length?'경주 모의 방문 보상 지급 완료 · 실제 방문 인증 아님':'아직 모의 방문 보상이 없어요.';
+ $('visit-state').textContent=visits.rewards.some(r=>r.regionId==='gyeongju')?'경주 모의 방문 보상 지급 완료 · 실제 방문 인증 아님':'아직 모의 방문 보상이 없어요.';
 }catch{}}
 $('mock-route').onclick=()=>busy($('mock-route'),async()=>{const start=Date.now();for(let i=0;i<=8;i++)await api('/api/session/visits/mock','POST',{source:'simulation',latitude:35.8347,longitude:129.219,timestamp:start+i*15000});await refreshRewards();status('2분 경로를 가속 재생했어요. 모의 방문 보상을 확인해주세요.');});
 setInterval(()=>{if(!document.hidden)refreshRewards();},5000);refreshRewards();

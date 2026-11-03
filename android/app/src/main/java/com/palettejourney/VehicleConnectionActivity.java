@@ -44,6 +44,7 @@ public class VehicleConnectionActivity extends Activity {
         codeLabel=new TextView(this);codeLabel.setTextIsSelectable(true);root.addView(codeLabel);qr=new ImageView(this);root.addView(qr,new LinearLayout.LayoutParams(400,400));
         button("연결 상태·페이지 새로고침",()->{requireToken();loadLibrary();});
         button("여행책 감상",()->handler.post(()->startActivity(new android.content.Intent(this,JourneyBookActivity.class))));
+        button("색·스티커 사전",()->handler.post(()->startActivity(new android.content.Intent(this,CollectionActivity.class))));
         // Group existing controls without changing pairing actions or credentials.
         java.util.List<android.view.View> controls=new java.util.ArrayList<>();for(int i=0;i<root.getChildCount();i++)controls.add(root.getChildAt(i));
         java.util.function.Function<String,Button> find=label->{for(android.view.View v:controls)if(v instanceof Button&&label.equals(((Button)v).getText().toString()))return (Button)v;return null;};
@@ -51,6 +52,7 @@ public class VehicleConnectionActivity extends Activity {
         LinearLayout address=DevUi.fold(pairing,"접속 주소·연결 링크");DevUi.moveTo(address,origin);DevUi.moveTo(address,codeLabel);address.addView(DevUi.text(this,"같은 Wi-Fi · 5분 유효 · 가족 비공개",20));
         LinearLayout shared=DevUi.section(root,"함께 보는 그림");DevUi.moveTo(shared,pages);DevUi.moveTo(shared,find.apply("선택 페이지 함께 보기"));DevUi.moveTo(shared,rewards);
         DevUi.moveTo(shared,find.apply("여행책 감상"));
+        DevUi.moveTo(shared,find.apply("색·스티커 사전"));
         LinearLayout manage=DevUi.fold(root,"가족 관리");DevUi.moveTo(manage,find.apply("차량 가족 연결 시작·재연결"));DevUi.moveTo(manage,code);DevUi.moveTo(manage,find.apply("기존 웹 가족에 연결"));DevUi.moveTo(manage,find.apply("기존 가족으로 돌아가기"));DevUi.moveTo(manage,find.apply("연결 상태·페이지 새로고침"));
         LinearLayout demo=DevUi.fold(root,"개발용 시연");DevUi.moveTo(demo,find.apply("새 시연 가족 · 경주 잠금 상태"));DevUi.moveTo(demo,find.apply(getString(R.string.vehicle_signals)));
         try{token=VehicleApi.load(this);}catch(Exception ignored){status.setText("저장한 연결을 열 수 없어요. 새 코드로 다시 연결해주세요.");}
@@ -60,7 +62,7 @@ public class VehicleConnectionActivity extends Activity {
     private void requireToken()throws Exception{if(token==null)throw new Exception();}
     private void refreshRewards()throws Exception{
         JSONObject palette=VehicleApi.request("/api/session/palette","GET",null,token),catalog=VehicleApi.request("/api/session/catalog","GET",null,token);
-        JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");int owned=0;for(int i=0;i<stickers.length();i++)if(stickers.getJSONObject(i).optBoolean("unlocked"))owned++;
+        JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");int owned=0;for(int i=0;i<stickers.length();i++)if(stickers.getJSONObject(i).optBoolean("acquired"))owned++;
         String value=colors.length()+"색 · 스티커 "+owned+"개"+(VehicleApi.isDemo(this)?" · 시연 가족":"");handler.post(()->{if(!isDestroyed())rewards.setText(value);});
     }
     private void loadLibrary()throws Exception{

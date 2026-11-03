@@ -7,7 +7,7 @@ import { ConversationStore } from './conversation.mjs';
 import { VoiceStore } from './voice.mjs';
 import { ConnectionStore } from './connection.mjs';
 import { DiaryStore } from './diaries.mjs';
-import { contentCatalog } from '../core/catalog.mjs';
+import { contentCatalog, STICKERS } from '../core/catalog.mjs';
 import { VisitStore } from './visits.mjs';
 import { ownedStickers } from './stickers.mjs';
 
@@ -32,7 +32,9 @@ export function createApp(store,options={}) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     try {
       const assets = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.mjs': ['app.mjs', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8'] };
-      for(const file of ['star','heart','cheomseongdae','silla-crown'])for(const suffix of ['', '-outline'])assets[`/assets/stickers/${file}${suffix}.svg`]=[`assets/stickers/${file}${suffix}.svg`,'image/svg+xml'];
+      for(const item of STICKERS)for(const suffix of ['', '-outline']){const path=item.asset.replace('.svg',suffix+'.svg');assets[path]=[path.slice(1),'image/svg+xml'];}
+      assets['/catalog-view.mjs']=['assets/catalog-view.mjs','text/javascript; charset=utf-8'];
+      assets['/catalog-view.css']=['assets/catalog-view.css','text/css; charset=utf-8'];
       assets['/voice.mjs']=['voice.mjs','text/javascript; charset=utf-8'];
       assets['/stickers.mjs']=['stickers.mjs','text/javascript; charset=utf-8'];
       if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
