@@ -9,6 +9,7 @@ import { ConnectionStore } from './connection.mjs';
 import { DiaryStore } from './diaries.mjs';
 import { contentCatalog, STICKERS } from '../core/catalog.mjs';
 import { VisitStore } from './visits.mjs';
+import { DriveStore } from './drive.mjs';
 import { ownedStickers } from './stickers.mjs';
 
 async function readJson(req) {
@@ -24,6 +25,7 @@ async function readJson(req) {
 export function createApp(store,options={}) {
   const diaries=new DiaryStore(store),voice=new VoiceStore(diaries),connection=new ConnectionStore(store,diaries),conversation=new ConversationStore(voice,options.synthesizeQuestions);
   const visits=new VisitStore(store);
+  const drive=new DriveStore(store,visits);
   return createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -61,6 +63,9 @@ export function createApp(store,options={}) {
       else if(req.method==='PUT'&&req.url==='/api/session/connection')result=connection.set(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/invitations')result=store.invite(token);
       else if(req.method==='GET'&&req.url==='/api/session/visits')result=visits.state(token);
+      else if(req.method==='GET'&&req.url==='/api/session/visits/drive')result=drive.state(token);
+      else if(req.method==='POST'&&req.url==='/api/session/visits/drive'){const body=await readJson(req);if(body?.action==='select')result=drive.select(token,body.regionId);else if(body?.action==='tick')result=drive.tick(token,body);else throw new Error('INVALID_DRIVE');}
+      else if(req.method==='POST'&&req.url==='/api/session/visits/reset')result=drive.reset(token);
       else if(req.method==='POST'&&req.url==='/api/session/visits/vehicle')result=visits.vehicle(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/visits/mock')result=visits.sample(token,await readJson(req));
       else if(req.method==='GET'&&req.url==='/api/session/catalog')result=contentCatalog(store.sessionPalette(token),ownedStickers(store,token),store.developmentStickers(token));
@@ -97,7 +102,7 @@ export function createApp(store,options={}) {
       } else { res.statusCode = 404; res.end(JSON.stringify({ error: 'NOT_FOUND' })); return; }
       res.end(JSON.stringify(result));
     } catch (error) {
-      const codes = { INVALID_DEMO_ACCOUNT:409, SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
+      const codes = { INVALID_DRIVE:400, DRIVE_NOT_STARTED:409, DEMO_ONLY:403, INVALID_DEMO_ACCOUNT:409, SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
         INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400 };
       res.statusCode = codes[error.message] ?? 500;

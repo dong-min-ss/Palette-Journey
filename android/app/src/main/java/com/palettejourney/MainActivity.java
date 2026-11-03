@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private TextView currentQuestion, conversationHistory, conversationState;
     private Button skipConversation, endConversation;
     private final List<VoiceArchive.Entry> recordedEntries=new ArrayList<>();
-    private Button saveRecording,openRecordings,webConnection,journeyBook,collectionButton;
+    private Button saveRecording,openRecordings,webConnection,journeyBook,collectionButton,devDrive;
     private boolean recordingSaved,foreground,pendingRecordStart;
     private void clearRecordedDrafts() {
         for(VoiceArchive.Entry entry:recordedEntries)if(entry.audio!=null)entry.audio.delete();
@@ -107,6 +107,7 @@ public class MainActivity extends Activity {
         if(openRecordings!=null)openRecordings.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(collectionButton!=null)collectionButton.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(journeyBook!=null)journeyBook.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
+        if(devDrive!=null)devDrive.setEnabled(emulatorTestAllowed()&&!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
     }
     private void playSpeechQuestion() {
         if (!speechReady || speechBusy || speech == null || !emulatorTestAllowed()) {
@@ -221,6 +222,7 @@ public class MainActivity extends Activity {
         root.removeView(webConnection);root.addView(webConnection,2,new LinearLayout.LayoutParams(-1,-2));
         journeyBook=new Button(this);journeyBook.setText("여행책 감상");root.addView(journeyBook,2,new LinearLayout.LayoutParams(-1,-2));journeyBook.setOnClickListener(v->startActivity(new Intent(this,JourneyBookActivity.class)));
         collectionButton=new Button(this);collectionButton.setText("색·스티커 사전");root.addView(collectionButton,3,new LinearLayout.LayoutParams(-1,-2));collectionButton.setOnClickListener(v->startActivity(new Intent(this,CollectionActivity.class)));
+        if(BuildConfig.DEBUG){devDrive=new Button(this);devDrive.setText("개발자 주행 시연");root.addView(devDrive,4,new LinearLayout.LayoutParams(-1,-2));devDrive.setOnClickListener(v->startActivity(new Intent(this,DevDriveActivity.class)));}
         renderConversation();
         answerStatus.setText("동의 후 대화를 시작해주세요.");
         answerText.setText("");

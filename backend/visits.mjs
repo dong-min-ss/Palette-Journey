@@ -41,18 +41,23 @@ export class VisitStore {
       db.prepare('INSERT INTO visit_progress(owner_hash,entered,last_sample,region_id) VALUES (?,?,?,?) ON CONFLICT(owner_hash) DO UPDATE SET entered=excluded.entered,last_sample=excluded.last_sample,region_id=excluded.region_id').run(progressKey,entered,s.timestamp,policy?.regionId??null);
       let awarded=false;
       if(entered!==null&&s.timestamp-entered>=policy.dwellMs){
-        const acquiredAt=new Date(a.now()).toISOString();
-        awarded=!!db.prepare('INSERT OR IGNORE INTO visit_rewards VALUES (?,?,?,?)').run(owner,policy.regionId,'simulation',acquiredAt).changes;
-        if(awarded){
-          let palette=a.getByKey(owner);
-          const regionColors=REGIONAL_COLORS.filter(c=>c.regionId===policy.regionId);
-          for(const color of regionColors)palette=collectRegionColor(palette,color,acquiredAt);
-          palette={...palette,colors:palette.colors.map(c=>c.source==='region'&&regionColors.some(r=>'region-'+r.id===c.id)?{...c,visitSource:'simulation'}:c)};
-          db.prepare('UPDATE accounts SET palette=? WHERE token_hash=?').run(JSON.stringify(palette),owner);
-          for(const sticker of STICKERS.filter(s=>s.regionId===policy.regionId))db.prepare('INSERT OR IGNORE INTO sticker_ownership VALUES (?,?,?)').run(owner,sticker.id,'simulation-'+policy.regionId);
-        }
+        awarded=this.award(owner,policy);
       }
       db.exec('COMMIT');return {...this.state(token),regionId:policy?.regionId??null,regionName:policy?.name??null,awarded,dwellMs:entered===null?0:s.timestamp-entered};
     }catch(e){db.exec('ROLLBACK');throw e;}
+  }
+  // Caller holds the same SQLite transaction as its visit/drive progress update.
+  award(owner,policy){
+    const a=this.accounts,db=a.db;
+    const acquiredAt=new Date(a.now()).toISOString();
+    const awarded=!!db.prepare('INSERT OR IGNORE INTO visit_rewards VALUES (?,?,?,?)').run(owner,policy.regionId,'simulation',acquiredAt).changes;
+    if(awarded){
+      let palette=a.getByKey(owner);const regionColors=REGIONAL_COLORS.filter(c=>c.regionId===policy.regionId);
+      for(const color of regionColors)palette=collectRegionColor(palette,color,acquiredAt);
+      palette={...palette,colors:palette.colors.map(c=>c.source==='region'&&regionColors.some(r=>'region-'+r.id===c.id)?{...c,visitSource:'simulation'}:c)};
+      db.prepare('UPDATE accounts SET palette=? WHERE token_hash=?').run(JSON.stringify(palette),owner);
+      for(const sticker of STICKERS.filter(s=>s.regionId===policy.regionId))db.prepare('INSERT OR IGNORE INTO sticker_ownership VALUES (?,?,?)').run(owner,sticker.id,'simulation-'+policy.regionId);
+    }
+    return awarded;
   }
 }

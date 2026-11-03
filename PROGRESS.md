@@ -352,3 +352,13 @@
 - 기기 시험 시행착오: Kotlin 선언 오류와 Main 사전 버튼 누락을 수정했다. HTML 로드 전 evaluateJavascript가 취소되는 시험 초기화 순서는 onPageFinished 준비 표시를 기다리도록 보완했다. 실패를 완료로 기록하지 않고 최종2개를 재실행했다.
 - 웹 합성 가족에서 경주 보유/부산 미획득, 부산 지급 후 선택 유지 및 색3/3·스티커2/2 자동 반영, 제주 미획득/보유 필터 빈 상태, 새 부산 스티커 배치·페이지 저장을 UI+인증 GET으로 확인했다.390px 휴대폰 폭에서 가로 넘침 없음. 사용자 기존 가족/그림은 사용하지 않았고 합성 세션을 종료·viewport 복원했다.
 - evidence/collection-root.png, collection-busan.png, collection-jeju.png 및 catalog-web-root.png, catalog-web-jeju.png, catalog-sticker-use.png 시각 확인. 기존 Palette Journey 서버임을 확인한 뒤 데이터 보존 재시작해 새 지역 코드를 반영했다. 최종 APK 데이터 보존 설치 완료. 실차/실제 방문 인증으로 주장하지 않는다.
+
+
+## 2026-11-03 — 콘솔 다도시 주행 시연·지역 방문 초기화
+- Main/가족 연결 개발용 시연에 개발자 주행 시연 진입. 5도시 선택, SDK callback 속도·기어, 모의300m/정차5초 진행률·가상 좌표, 선택 도시 실시간 컬렉션, 일시정지/이어가기, 휴대폰 연결, 새 시연 가족 제공. debug에만 주행 가림 예외. 오프라인 WebView/토큰 비노출 유지.
+- DriveStore+GET/POST /api/session/visits/drive, POST /api/session/visits/reset 추가. 서버 시간·양끝 D 유효 신호의 보수적 거리 적분, P·속도0.2m/s 이하 연속5초, 입력 공백/화면 이탈 연속성 중단, 목적지 변경 새 tripId. 기존 GPS 보상 지급 함수를 공통화해 원자적 가족/도시/simulation 중복 방지. 기존 GPS120초 경로와 별개.
+- 초기화는 mock 켜진 시연 가족만 허용. 같은 가족의 지역 simulation 색/스티커/영수증·전체 참여자 방문 진행/주행을 초기화하고 기존 연결, 기본/개인 색·티켓·그림·대화 및 다른 가족을 보존한다. 이전 tripId는409로 차단. 새 시연 가족을 만들 필요 없이 휴대폰 자동 갱신에서 재잠금 가능.
+- npm.cmd run check61/61 성공. 신규5개는 도시별 D300m/P5초, 반복 지급 방지, 가족 공유·초기화·재획득, 비D/누락/오래된 신호/공백/지역 변경, 일반 가족/플래그/인증 차단, 개인 색·티켓·그림·다른 가족 보존 및 모든 가족 방문 스트림 초기화, HTTP stale trip409를 확인. 첫 테스트2개 실패는 시험 DB의 스티커 테이블 초기화 누락이었고 초기화 후 전부 성공.
+- Android assembleDebug/testDebugUnitTest18개 성공. 실제 콘솔 D/ACCEL→부산300m→P5초 해금→제주 선택·주행·해금→지역 방문 초기화 확인창→같은 가족 별도 참여자0획득·trip없음까지 첫 기기 시험1개 성공. 사용자 기존 데이터 대신 합성 가족 사용·종료 후 기존 시연 슬롯/활성 모드 복원. evidence/drive-busan.png에서 고대비 화면/진행률/5카드 확인.
+- 중간 에뮬레이터 종료로 후속 connectedDebugAndroidTest가 No connected devices로 실패했다. AVD 재실행/콘솔 포워딩 복원 후 최종 회귀 검증 재실행. 가족 연결 진입 버튼은 controls 스냅샷 이전에 추가해 접기 메뉴 이동을 보장했다. Python 별칭 접근 실패는 Node 편집으로 전환했고 잘못된 문서 patch는 적용 없이 수정했다. DRIVE_DEMO.md에 정확한 조작·모의 GPS와 실제 GPS 차이·휴대폰 연결 유지 주의점 작성.
+- 최종 connectedDebugAndroidTest4개 tests=4 failures=0 errors=0 성공: CollectionDeviceTest31.440초, DevDriveDeviceTest의 실제 두 도시 주행·초기화 및 가족 메뉴 진입2개, JourneyBookDeviceTest18.195초. 최종 APK 데이터 보존 설치 Success, Main 실행 완료. 실제 휴대폰 재잠금 육안 확인은 사용자가 이어서 할 수 있고 동일 가족 별도 참여자 API 반영은 기기 시험에서 확인했다.

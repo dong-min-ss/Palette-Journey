@@ -33,7 +33,7 @@ public class VehicleConnectionActivity extends Activity {
         code=new EditText(this);code.setHint("기존 웹의 24자리 연결 코드");code.setSingleLine(true);root.addView(code);
         button("기존 웹 가족에 연결",()->{String input=codeInput.trim().toLowerCase(java.util.Locale.ROOT);if(!input.matches("[a-f0-9]{24}"))throw new Exception();String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",input),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
         button("차량 가족 연결 시작·재연결",()->{String owner=VehicleApi.load(this,"owner");if(owner==null){owner=VehicleApi.randomToken();VehicleApi.save(this,"owner",owner);}VehicleApi.request("/api/account","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
-        button("새 시연 가족 · 경주 잠금 상태",()->{String owner=VehicleApi.randomToken();VehicleApi.request("/api/account/demo","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String member=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),member);VehicleApi.saveDemo(this,member);token=member;clearPairing();loadLibrary();});
+        button("새 시연 가족 · 지역 잠금 상태",()->{String owner=VehicleApi.randomToken();VehicleApi.request("/api/account/demo","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String member=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),member);VehicleApi.saveDemo(this,member);token=member;clearPairing();loadLibrary();});
         button("기존 가족으로 돌아가기",()->{VehicleApi.useDemo(this,false);clearPairing();token=VehicleApi.load(this);if(token==null){handler.post(()->{status.setText("기존 연결이 없어요. 가족 연결 코드를 입력해주세요.");rewards.setText("");pageList=new JSONArray();pages.setAdapter(DevUi.spinner(this,new String[]{}));});return;}loadLibrary();});
         rewards=new TextView(this);root.addView(rewards);
         button(getString(R.string.vehicle_signals),()->handler.post(()->startActivity(new android.content.Intent(this,VehicleSignalsActivity.class))));
@@ -45,6 +45,7 @@ public class VehicleConnectionActivity extends Activity {
         button("연결 상태·페이지 새로고침",()->{requireToken();loadLibrary();});
         button("여행책 감상",()->handler.post(()->startActivity(new android.content.Intent(this,JourneyBookActivity.class))));
         button("색·스티커 사전",()->handler.post(()->startActivity(new android.content.Intent(this,CollectionActivity.class))));
+        button("개발자 주행 시연",()->handler.post(()->startActivity(new android.content.Intent(this,DevDriveActivity.class))));
         // Group existing controls without changing pairing actions or credentials.
         java.util.List<android.view.View> controls=new java.util.ArrayList<>();for(int i=0;i<root.getChildCount();i++)controls.add(root.getChildAt(i));
         java.util.function.Function<String,Button> find=label->{for(android.view.View v:controls)if(v instanceof Button&&label.equals(((Button)v).getText().toString()))return (Button)v;return null;};
@@ -54,7 +55,7 @@ public class VehicleConnectionActivity extends Activity {
         DevUi.moveTo(shared,find.apply("여행책 감상"));
         DevUi.moveTo(shared,find.apply("색·스티커 사전"));
         LinearLayout manage=DevUi.fold(root,"가족 관리");DevUi.moveTo(manage,find.apply("차량 가족 연결 시작·재연결"));DevUi.moveTo(manage,code);DevUi.moveTo(manage,find.apply("기존 웹 가족에 연결"));DevUi.moveTo(manage,find.apply("기존 가족으로 돌아가기"));DevUi.moveTo(manage,find.apply("연결 상태·페이지 새로고침"));
-        LinearLayout demo=DevUi.fold(root,"개발용 시연");DevUi.moveTo(demo,find.apply("새 시연 가족 · 경주 잠금 상태"));DevUi.moveTo(demo,find.apply(getString(R.string.vehicle_signals)));
+        LinearLayout demo=DevUi.fold(root,"개발용 시연");DevUi.moveTo(demo,find.apply("개발자 주행 시연"));DevUi.moveTo(demo,find.apply("새 시연 가족 · 지역 잠금 상태"));DevUi.moveTo(demo,find.apply(getString(R.string.vehicle_signals)));
         try{token=VehicleApi.load(this);}catch(Exception ignored){status.setText("저장한 연결을 열 수 없어요. 새 코드로 다시 연결해주세요.");}
         if(token!=null)run(this::loadLibrary);
     }
