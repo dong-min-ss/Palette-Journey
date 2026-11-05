@@ -1,6 +1,6 @@
 export const QUESTIONS=['오늘 어떤 일이 있었어?','어떤 게 가장 재미있었어?','뭐가 제일 맛있었어?','다음에는 누구와 무엇을 하고 싶어?'];
 
-export function createVoiceDiary({getPage,getToken,api}) {
+export function createVoiceDiary({getPage,getToken,api,beforeRecord}) {
   const $=id=>document.getElementById(id);
   let page=null,metadata={revision:0,recording:null},recorder=null,stream=null,pending=false,working=false,draft=null,url=null;
   let question=0,cues=[],timer=null,elapsed=0,segment=0,generation=0,loading=false,ready=false,refreshing=false;
@@ -11,12 +11,21 @@ export function createVoiceDiary({getPage,getToken,api}) {
   function preview(blob,controls=true){releaseURL();url=URL.createObjectURL(blob);$('voice-player').src=url;$('voice-player').controls=controls;$('voice-player').hidden=!controls;ready=!controls;}
   function cleanup(){clearInterval(timer);timer=null;stream?.getTracks().forEach(t=>t.stop());stream=null;}
   function render(){
-    const listening=$('voice-player').paused===false;const recording=active();$('voice-start').disabled=!page||recording||working||loading||!!draft||listening;
+    const listening=$('voice-player').paused===false;const recording=active();
+    const insecure=globalThis.isSecureContext===false;
+    $('voice-start').disabled=!page||recording||working||loading||!!draft||listening||insecure;
+    $('voice-start').textContent=metadata.recording?'목소리 다시 녹음하기':'목소리 녹음하기';
+    const environment=$('voice-environment');
+    environment.hidden=!insecure;
+    environment.textContent=insecure?'이 주소에서는 휴대폰 마이크를 사용할 수 없어요. 신뢰할 수 있는 HTTPS 주소로 같은 가족에 연결하면 이 그림에서 녹음할 수 있어요.':'';
     $('voice-stop').disabled=!recording;
     $('voice-pause').disabled=!recorder||recorder.state==='inactive'||working;
     $('voice-pause').textContent=recorder?.state==='paused'?'녹음 이어가기':'잠시 쉬기';
     $('voice-next').disabled=!recorder||recorder.state!=='recording'||question>=QUESTIONS.length-1;
+    for(const id of ['voice-next','voice-pause','voice-stop'])$(id).hidden=!recording;
     $('voice-download').disabled=!draft||working;$('voice-save').disabled=!draft||working;$('voice-discard').disabled=!draft||working;
+    $('voice-download').hidden=/PaletteCompanion\//.test(navigator.userAgent??'');
+    $('voice-save').hidden=!draft;$('voice-discard').hidden=!draft;
     $('voice-play').disabled=!metadata.recording||!ready||recording||working||!!draft||loading;
     $('voice-play').textContent=listening?'대화 녹음 일시정지':$('voice-player').ended?'대화 녹음 다시 재생':'대화 녹음 재생';
     $('voice-refresh').disabled=recording||working||!!draft||loading;
@@ -32,7 +41,7 @@ export function createVoiceDiary({getPage,getToken,api}) {
     say('음성 기록을 확인하고 있어요.');
     try {
       const result=await api(`/api/session/pages/${id}/voice`);if(epoch!==generation)return;metadata=result;showCues(result.recording?.cues??[]);
-      if(!result.recording){say('아직 대화가 없어요.');return;}
+      if(!result.recording){say('그림을 그리고 여기서 목소리까지 남겨보세요.');return;}
       say('이 그림에 담긴 대화 녹음을 준비하고 있어요.');
       const route=result.recording.mode==='vehicle-answer-original'?'conversation':'audio';
       const response=await fetch(`/api/session/pages/${id}/voice/${route}`,{headers:{Authorization:`Bearer ${getToken()}`}});
@@ -47,8 +56,17 @@ export function createVoiceDiary({getPage,getToken,api}) {
     if(!navigator.mediaDevices?.getUserMedia||!globalThis.MediaRecorder){say('이 브라우저에서는 녹음을 지원하지 않아요. Chrome 또는 Safari의 HTTPS/로컬 환경에서 열어주세요.');return;}
     if(!$('voice-consent').checked){say('보호자가 녹음 안내를 확인하고 동의해주세요.');$('voice-consent').focus();return;}
     if(metadata.recording&&!confirm('새로 녹음할까요? 기존 녹음은 새 녹음을 저장하기 전까지 유지됩니다.'))return;
-    releaseURL();pending=true;render();say('마이크 사용을 허용해주세요.');const epoch=generation;
+    pending=true;render();const epoch=generation;let preparing=!!beforeRecord;
     try{
+      if(beforeRecord){
+        say('이 그림을 저장하고 있어요.');
+        const saved=await beforeRecord();
+        if(epoch!==generation||!page)return;
+        if(!saved){pending=false;render();say('그림 저장을 마친 뒤 녹음을 시작해주세요.');return;}
+      }
+      preparing=false;
+      if(getPage()?.id!==page){pending=false;render();return;}
+      releaseURL();say('마이크 사용을 허용해주세요.');
       const acquired=await navigator.mediaDevices.getUserMedia({audio:true});
       if(epoch!==generation||!page){acquired.getTracks().forEach(t=>t.stop());return;}
       stream=acquired;
@@ -62,14 +80,14 @@ export function createVoiceDiary({getPage,getToken,api}) {
         cleanup();working=false;if(epoch!==generation)return;
         const ms=Math.max(1,Math.min(120000,elapsed));
         const blob=new Blob(chunks,{type:mime.split(';')[0]});
-        if(!failed&&blob.size>=12&&blob.size<=2097152){draft={blob,duration:ms,cues:structuredClone(cues),page:recordingPage};preview(blob);showCues(cues);say('녹음이 끝났어요. 들어본 뒤 저장해주세요. 저장 전에는 이 화면에만 있어요.');}
+        if(!failed&&blob.size>=12&&blob.size<=2097152){draft={blob,duration:ms,cues:structuredClone(cues),page:recordingPage};preview(blob);showCues(cues);say('들어본 뒤 이 그림에 목소리 저장을 눌러주세요.');}
         else say('녹음 파일을 만들지 못했어요. 다시 녹음해주세요.');
         recorder=null;render();
       };
       question=0;elapsed=0;cues=[{question:0,at:0}];pending=false;segment=performance.now();recorder.start(1000);
       timer=setInterval(()=>{if(duration()>=120000)stop();render();},250);
       say('녹음 중이에요. 보호자가 질문을 읽고, 아이의 답을 기다려주세요.');render();if(document.hidden)pause();
-    }catch(error){if(epoch!==generation)return;cleanup();pending=false;recorder=null;say(error.name==='NotAllowedError'?'마이크 권한이 없어 녹음을 시작하지 않았어요. 브라우저 권한을 확인해주세요.':'녹음을 시작하지 못했어요. 마이크 연결과 지원 형식을 확인해주세요.');render();}
+    }catch(error){if(epoch!==generation)return;cleanup();pending=false;recorder=null;say(preparing?'그림을 저장하지 못했어요. 연결을 확인하고 다시 녹음을 눌러주세요.':error.name==='NotAllowedError'?'마이크 권한이 없어 녹음을 시작하지 않았어요. 브라우저 권한을 확인해주세요.':'녹음을 시작하지 못했어요. 마이크 연결과 지원 형식을 확인해주세요.');render();}
   }
   async function refresh(){
     if(!page||!getToken()||refreshing||loading||active()||draft||working||$('voice-player').paused===false)return;
@@ -112,6 +130,7 @@ export function createVoiceDiary({getPage,getToken,api}) {
     catch(error){say(error.message==='VOICE_CONFLICT'?'다른 기기에서 기록이 바뀌었어요. 메뉴를 닫고 다시 열어 확인해주세요.':'삭제하지 못했어요. 연결 후 다시 시도해주세요.');}finally{working=false;render();}
   };
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(recorder?.state==='recording')pause();$('voice-player').pause();render();}});
+  document.addEventListener('palette-app-background',()=>{if(recorder?.state==='recording')pause();$('voice-player').pause();render();});
   window.addEventListener('pagehide',()=>{generation++;stop();cleanup();releaseURL();});
   return {blocked:()=>!!(active()||draft||working),load,refresh,
     opened(){if(getPage()?.id!==page||(!active()&&!draft&&!working))load(getPage()?.id??null);},

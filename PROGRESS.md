@@ -1,5 +1,15 @@
 # 개발 현황
 
+## 2026-11-05 — Android 폰 보조 앱과 그림·목소리 통합
+
+- 별도 `:companion` 모듈·런처·마이크 권한·현재 가족 웹 화면·연결 실패 재시도·이탈 일시정지·종료 확인을 구현했다. 폰 에뮬레이터 `emulator-5556`에 설치했다. 차량 `:app` 코드는 수정하지 않았다.
+- 그림 아래에 동의·녹음·미리 듣기·현재 그림에 저장을 노출했다. 그림 저장 후 녹음을 시작하며 저장 실패/취소 시 마이크를 열지 않는다. 여행책의 새 페이지·불러오기·재방문 알림·연결 나가기를 여백/구분선으로 분리했다.
+- `npm.cmd run check` 66/66 통과. 신규 검사는 그림 저장 대기·실패·취소 뒤 마이크가 열리지 않고 성공 뒤에만 요청하는 것을 확인한다.
+- `gradlew.bat --no-daemon :companion:assembleDebug :companion:assembleDebugAndroidTest :app:testDebugUnitTest --console=plain` 성공. 기존 차량 단위 검사 성공. 기기 시험은 별도 메모리 DB와 합성 가족만 사용했다.
+- API37 Google Play x86_64 폰에서 CompanionDeviceTest 1개 최종 10.041초, OK. 실제 Android 터치 획 → WebView 마이크/MediaRecorder → 일시정지·재개 → 현재 페이지 저장 → 서버 그림/음성 조회 → 앱 새로고침 → 실제 터치 재생 → 차량과 같은 Android MediaPlayer 디코딩을 확인했다. 페이지 추가와 다음 설정 사이 20px 이상·가로 넘침 없음도 검사했다. 호스트 마이크는 껐으며 사람 목소리 음질 검증으로 표시하지 않는다.
+- 초기 AVD 부팅/시스템 UI 응답 없음, WebView MODIFY_AUDIO_SETTINGS 누락, 자동 시험의 모듈 초기화·새로고침·사용자 제스처 대기 문제를 수정하고 최종 시험을 통과했다. 폰 AVD는 별도 영문 임시 경로와 소프트웨어 GPU로 구성했다. `evidence/phone-studio.png`, `phone-book.png` 육안 검수 완료.
+- PHONE_DEMO.md와 실행 스크립트, APK/체크섬, README·MVP_FLOW·웹 문서를 갱신했다. 남은 사용자 확인은 실제 PC 마이크 입력과 자신의 가족 기록으로 차량 화면까지 연속 시연하는 것이다. iOS 인증서·정식 배포·생성형 글레오 자유 대화는 진행하지 않았다.
+
 ## 2026-11-01 — 글레오 AI 대화 일기 문서 반영
 
 - 루트/웹 README, ROADMAP, DECISIONS에 낮은 쓰기 능력의 어린 자녀 타깃과 AI 질문·아이 답변의 대화 녹음 방향을 반영했다. 앰비언트 조명 유지도 README에 명시했다.

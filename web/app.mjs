@@ -14,7 +14,11 @@ const canvas=$('drawing'), ctx=canvas.getContext('2d');
 const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:()=>strokes.reduce((n,s)=>n+s.points.length,0),getColor:()=>selected,getWidth:()=>Number($('size').value),getEraserMode:()=>eraserMode,canEdit:()=>!!token&&!!currentPage&&!active,onChange:changed,onSelect:(item,message)=>{
   $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
 }});
-const voiceDiary=createVoiceDiary({getPage:()=>currentPage,getToken:()=>token,api});
+const voiceDiary=createVoiceDiary({getPage:()=>currentPage,getToken:()=>token,api,beforeRecord:async()=>{
+  if(active||stickerEditor.isActive())return false;
+  await saveCurrent();
+  return !!currentPage&&!dirty;
+}});
 function snapshot(){return {entryDate:$('page-date').value||currentPage.entryDate,regionId:$('page-region').value||null,title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
 function changed(){
   renderEntryHeading();

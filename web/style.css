@@ -116,3 +116,25 @@ body:has(#studio:not([hidden])){background:#eff1e9}.appbar{height:72px;border-co
 #size-preview-dot{display:block;flex:none;border-radius:50%;pointer-events:none}
 #size-preview-name{margin:8px 0 0;text-align:center;font-size:11px;color:var(--muted);line-height:1.5}
 .tool-dock .eraser-options{position:absolute;bottom:calc(100% + 12px);left:0;display:flex;gap:8px;padding:12px;background:#fffefb;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px #18352225}.tool-dock .eraser-options button{font-size:13px;padding:10px 14px;white-space:nowrap}.tool-dock .eraser-options button[aria-pressed=true]{background:#174f40;color:white}
+
+#panel-book .library{padding:0;border:0;background:transparent;box-shadow:none}
+#panel-book .book-selectors{margin-bottom:20px}
+#panel-book #dated-pages{display:grid;gap:10px;margin:20px 0}
+#panel-book #dated-pages button{text-align:left;line-height:1.5}
+#panel-book .new-page{display:grid;gap:12px;margin:24px 0 0;padding-top:24px;border-top:1px solid var(--line)}
+#panel-book .new-page label,#panel-book .new-page input{margin:0}
+#panel-book .book-settings{display:grid;gap:12px;margin-top:24px;padding-top:24px;border-top:1px solid var(--line)}
+#panel-book .book-settings h3{margin:0;font-size:16px}
+#panel-book .book-settings p{margin:0;line-height:1.7}
+#panel-book .book-settings .actions{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+#panel-book #revisit-setting{margin:0}
+.entry-conversation .voice-intro{margin:12px 0;line-height:1.7}
+.entry-conversation .voice-consent{display:flex;align-items:flex-start;gap:10px;line-height:1.6;margin:16px 0}
+.entry-conversation .voice-consent input{flex:none;width:20px;height:20px;margin:2px 0 0}
+.entry-conversation .voice-prompt{margin:16px 0;padding:14px 16px;background:#f6f3e9;border-radius:14px}
+.entry-conversation .voice-prompt p{margin:0 0 8px;font-size:17px;color:var(--ink)}
+.entry-conversation .voice-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.entry-conversation #voice-environment{padding:12px 14px;background:#fff0d5;border-radius:12px;color:#65471d;line-height:1.7}
+.entry-conversation #voice-start,.entry-conversation #voice-save{background:var(--forest);color:white}
+.entry-conversation #conversation-details{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+@media(max-width:760px){.entry-conversation .voice-record-actions button,.entry-conversation .voice-draft-actions button{flex:1 1 130px}}

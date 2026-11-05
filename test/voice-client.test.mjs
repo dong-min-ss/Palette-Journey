@@ -2,6 +2,25 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createVoiceDiary} from '../web/voice.mjs';
 
+test('recording waits for drawing save and cancelled or failed saves never open the microphone',async()=>{
+  const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{checked:false,pause(){},removeAttribute(){},load(){},replaceChildren(){},focus(){}});return nodes.get(id);};
+  let resolveSave,microphones=0,fail=false;
+  const originals=new Map();
+  for(const [key,value] of Object.entries({document:{getElementById:get,addEventListener(){}},window:{addEventListener(){}},navigator:{mediaDevices:{getUserMedia:async()=>{microphones++;throw new Error('TEST_STOP');}}},MediaRecorder:class{}})){
+    originals.set(key,Object.getOwnPropertyDescriptor(globalThis,key));Object.defineProperty(globalThis,key,{configurable:true,value});
+  }
+  try{
+    const editor=createVoiceDiary({getPage:()=>({id:'page'}),getToken:()=>'',api:async()=>({revision:0,recording:null}),beforeRecord:()=>fail?Promise.reject(new Error('OFFLINE')):new Promise(r=>resolveSave=r)});
+    await editor.load('page');get('voice-consent').checked=true;
+    const cancelled=get('voice-start').onclick();assert.equal(editor.blocked(),true);assert.equal(microphones,0);
+    get('voice-stop').onclick();resolveSave(true);await cancelled;assert.equal(microphones,0);
+    const refused=get('voice-start').onclick();resolveSave(false);await refused;assert.equal(microphones,0);assert.equal(editor.blocked(),false);
+    fail=true;await get('voice-start').onclick();assert.equal(microphones,0);assert.match(get('voice-status').textContent,/그림을 저장하지 못/);
+    fail=false;const saved=get('voice-start').onclick();assert.equal(microphones,0);resolveSave(true);await saved;assert.equal(microphones,1);
+    editor.reset();
+  }finally{for(const [key,descriptor] of originals){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
+});
+
 test('recorder asks only after consent, pauses microphone, retains failed uploads and releases tracks',async()=>{
   const elements=new Map(),listeners={};
   const element=()=>({disabled:false,hidden:false,checked:false,textContent:'',setAttribute(){},removeAttribute(){},load(){},pause(){},focus(){},replaceChildren(){}});

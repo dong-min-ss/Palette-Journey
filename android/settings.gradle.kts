@@ -27,3 +27,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "PaletteJourney"
 include(":app")
+
+include(":companion")
