@@ -8,12 +8,14 @@ let token = null, palette = null, selected = null, selectedColorId=null, revisio
 let strokes=[], legacyRegions={}, active=null, undone=[], tool='paint';
 let eraserMode='partial',strokeHistory=[];
 let library=null,currentPage=null,saveTimer=null,saving=null,autoBlocked=false;
+let revisitMemory=null,revisitRequest=0,revisitUpdating=false;
+const selectedChild=()=>library?.diaries.find(d=>d.id===currentPage?.diaryId)?.childId??$('child').value;
 const canvas=$('drawing'), ctx=canvas.getContext('2d');
 const stickerEditor=createStickerEditor({root:$('sticker-layer'),pagePointCount:()=>strokes.reduce((n,s)=>n+s.points.length,0),getColor:()=>selected,getWidth:()=>Number($('size').value),getEraserMode:()=>eraserMode,canEdit:()=>!!token&&!!currentPage&&!active,onChange:changed,onSelect:(item,message)=>{
   $('undo').disabled=false;$('redo').disabled=false;if(message)status(message);
 }});
 const voiceDiary=createVoiceDiary({getPage:()=>currentPage,getToken:()=>token,api});
-function snapshot(){return {entryDate:$('page-date').value||currentPage.entryDate,title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
+function snapshot(){return {entryDate:$('page-date').value||currentPage.entryDate,regionId:$('page-region').value||null,title:$('page-title').value,text:$('page-text').value,template:currentPage.template,strokes,stickers:stickerEditor.placements(),revision,legacyRegions};}
 function changed(){
   renderEntryHeading();
   if(!currentPage){status('먼저 그림일기와 페이지를 추가해주세요.');return;}
@@ -48,7 +50,7 @@ async function api(path, method='GET', body, credential=token) {
 }
 function error(error) {
   status(messages[error.message] ?? '요청을 완료하지 못했어요. 연결을 확인하고 다시 시도해주세요.');
-  if (error.message === 'UNAUTHORIZED') { token=null; $('connection').hidden=false; $('save').disabled=true; $('unlock').disabled=true; }
+  if (error.message === 'UNAUTHORIZED') { token=null; $('connection').hidden=false; $('save').disabled=true; $('unlock').disabled=true; $('revisit-card').hidden=true; $('revisit-setting').disabled=true; revisitMemory=null; }
 }
 async function busy(button, action) {
   button.disabled = true;
@@ -101,6 +103,7 @@ async function load() {
   const page=library.pages.find(p=>p.id===currentPage?.id)||library.pages.find(p=>p.id===remembered)||library.pages[0];
   if(page)await openPage(page.id);else{currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};redraw();}
   $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
+  refreshRevisit();
 }
 function placeSticker(item){
  if(!token||!currentPage){status('먼저 그림일기 페이지를 열어주세요.');return;}
@@ -111,6 +114,7 @@ function placeSticker(item){
 let catalogSignature=null,catalogView=null;
 function renderCatalog(catalog){
  const signature=JSON.stringify(catalog);if(signature===catalogSignature)return;catalogSignature=signature;
+ options('page-region',[{id:'',name:'선택 안 함'},...catalog.cities],$('page-region').value);
  stickerEditor.setCatalog(catalog.stickers);$('sticker-picker').replaceChildren();
  for(const item of catalog.stickers.filter(s=>s.unlocked)){
   const button=document.createElement('button');button.className='secondary';
@@ -133,20 +137,24 @@ function renderLibrary(){
 async function openPage(id){
   const page=await api('/api/session/pages/'+id);currentPage=page;autoBlocked=false;clearTimeout(saveTimer);
   const diary=library.diaries.find(d=>d.id===page.diaryId);
+  if(revisitMemory?.childId!==diary.childId)$('revisit-card').hidden=true;
   $('child').value=diary.childId;$('trip').value=diary.tripId;renderLibrary();$('diary').value=diary.id;renderLibrary();$('page').value=page.id;
   $('page-date').value=page.entryDate;renderEntryHeading(page.title);
+  $('page-region').value=page.regionId??'';$('page-region').disabled=false;
   $('page-title').value=page.title;$('page-text').value=page.text;
   $('page-title').disabled=false;$('page-text').disabled=false;$('save').disabled=false;
   applyArtwork(page);
   voiceDiary.load(page.id);
   localStorage.setItem('pj-last-page-'+library.familyId,page.id);
   $('recover-draft').hidden=true;const draft=localStorage.getItem('pj-draft-'+page.id);
-  if(draft){try{const data=JSON.parse(draft);if(data.revision===page.revision){$('page-title').value=data.title;$('page-text').value=data.text;applyArtwork(data);changed();status('이 기기의 임시 기록을 복원했어요.');}else{$('recover-draft').hidden=false;status('서버와 임시 기록의 버전이 달라요. 서버 기록을 불러왔으며 임시 기록도 보존했어요.');}}catch{status('임시 기록을 읽지 못해 서버 기록을 불러왔어요.');}}
+  if(draft){try{const data=JSON.parse(draft);if(data.revision===page.revision){$('page-title').value=data.title;$('page-text').value=data.text;if(data.regionId!==undefined)$('page-region').value=data.regionId??'';applyArtwork(data);changed();status('이 기기의 임시 기록을 복원했어요.');}else{$('recover-draft').hidden=false;status('서버와 임시 기록의 버전이 달라요. 서버 기록을 불러왔으며 임시 기록도 보존했어요.');}}catch{status('임시 기록을 읽지 못해 서버 기록을 불러왔어요.');}}
+  refreshRevisit();
 }
 $('recover-draft').onclick=()=>{
   if(!currentPage||!confirm('이 기기의 임시 기록으로 이어쓰면 다음 저장 때 서버 내용을 바꿉니다. 계속할까요?'))return;
   try{const data=JSON.parse(localStorage.getItem('pj-draft-'+currentPage.id));
     $('page-title').value=data.title;$('page-text').value=data.text;
+    if(data.regionId!==undefined)$('page-region').value=data.regionId??'';
     applyArtwork({...data,revision:currentPage.revision,legacyRegions:currentPage.legacyRegions});autoBlocked=false;changed();$('recover-draft').hidden=true;
   }catch{status('임시 기록을 읽지 못했어요.');}
 };
@@ -172,7 +180,7 @@ for(const id of ['child','trip','diary','page'])$(id).onchange=()=>busy($(id),as
   if(next)await openPage(next);else{clearPage();status('그림일기와 페이지를 추가해주세요.');}
   }catch(e){restoreSelection();throw e;}
 });
-function clearPage(){voiceDiary.load(null);clearTimeout(saveTimer);currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
+function clearPage(){voiceDiary.load(null);clearTimeout(saveTimer);currentPage=null;$('page-region').value='';$('page-region').disabled=true;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};stickerEditor.setPlacements([]);undone=[];dirty=false;$('page-title').value='';$('page-text').value='';$('page-title').disabled=true;$('page-text').disabled=true;document.querySelector('.drawing-surface').classList.add('blank');redraw();}
 for(const kind of ['child','trip','diary'])$(kind+'-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,async()=>{
   if(!await leavePage())return;
   const path={child:'children',trip:'trips',diary:'diaries'}[kind];
@@ -185,7 +193,7 @@ $('page-form').onsubmit=event=>{event.preventDefault();busy(event.submitter,asyn
   const page=await api('/api/session/diaries/'+$('diary').value+'/pages','POST',{title:$('new-page-title').value,template:'blank'});
   library=await api('/api/session/library');await openPage(page.id);event.target.reset();status('새 페이지를 만들었어요.');
 });};
-$('page-date').onchange=changed;$('page-title').oninput=changed;$('page-text').oninput=changed;
+$('page-date').onchange=changed;$('page-region').onchange=changed;$('page-title').oninput=changed;$('page-text').oninput=changed;
 $('join-form').onsubmit = event => {
   event.preventDefault();
   busy($('join'), async()=>{
@@ -276,6 +284,7 @@ $('disconnect').onclick=()=>{
   if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 연결을 나가주세요.');return;}voiceDiary.reset();
   if(dirty&&!confirm('저장하지 않은 그림이 있어요. 연결에서 나갈까요?'))return;
   clearTimeout(saveTimer);localStorage.removeItem(storageKey);token=null;palette=null;dirty=false;pendingJoin=null;currentPage=null;
+  $('revisit-card').hidden=true;$('revisit-setting').disabled=true;revisitMemory=null;
   $('studio').hidden=true;$('connection').hidden=false;status('이 기기에서 연결을 나왔어요.');
 };
 window.addEventListener('beforeunload',event=>{if(dirty||voiceDiary.blocked()){event.preventDefault();event.returnValue='';}});
@@ -312,14 +321,67 @@ $('invite-device').onclick=()=>busy($('invite-device'),async()=>{const invite=aw
 function receivePairingLink(){const joinFragment=/^#join=([a-f0-9]{24})$/.exec(location.hash);
 if(joinFragment){$('code').value=joinFragment[1];history.replaceState(null,'',location.pathname);$('connection').hidden=false;status('QR 연결 코드를 확인하고 여행에 연결하기를 눌러주세요.');}}
 window.addEventListener('hashchange',receivePairingLink);receivePairingLink();
-setInterval(()=>{if(!document.hidden){refreshConnection();voiceDiary.refresh();}},5000);refreshConnection();
+setInterval(()=>{if(!document.hidden){refreshConnection();voiceDiary.refresh();refreshRevisit();}},5000);refreshConnection();
+
+function renderRevisit({enabled,memory}){
+  revisitMemory=memory;
+  $('revisit-setting').disabled=false;
+  $('revisit-setting').setAttribute('aria-pressed',String(enabled));
+  $('revisit-setting').textContent=enabled?'재방문 알림 끄기':'재방문 알림 켜기';
+  $('revisit-card').hidden=!memory;
+  if(!memory)return;
+  const heading=memory.regionName+'에서 쓴 그림일기를 다시 볼까요?';
+  if($('revisit-heading').textContent!==heading)$('revisit-heading').textContent=heading;
+  $('revisit-detail').textContent=memory.entryDate+' · '+memory.title+' · 모의 재방문';
+}
+async function refreshRevisit(){
+  if(!token||revisitUpdating)return;
+  const credential=token,child=selectedChild(),request=++revisitRequest;
+  try{
+    const result=await api('/api/session/revisit?childId='+encodeURIComponent(child));
+    if(token===credential&&request===revisitRequest&&child===selectedChild())renderRevisit(result);
+  }catch{}
+}
+async function updateRevisit(body){
+  revisitUpdating=true;
+  ++revisitRequest;
+  const credential=token;
+  try{
+    const state=await api('/api/session/revisit','PUT',body);
+    if(token===credential)renderRevisit(state);
+  }finally{
+    revisitUpdating=false;
+    await refreshRevisit();
+  }
+}
+$('revisit-setting').onclick=()=>busy($('revisit-setting'),()=>updateRevisit({enabled:$('revisit-setting').getAttribute('aria-pressed')!=='true'}));
+$('revisit-dismiss').onclick=()=>busy($('revisit-dismiss'),async()=>{
+  if(revisitMemory)await updateRevisit(revisitMemory);
+});
+$('revisit-open').onclick=()=>busy($('revisit-open'),async()=>{
+  const memory=revisitMemory;
+  if(!memory||memory.childId!==selectedChild()||!await leavePage())return;
+  library=await api('/api/session/library');
+  await openPage(memory.pageId);
+  openMenu(null);
+  document.querySelector('.sketch-workspace').scrollTop=0;
+  await updateRevisit(memory);
+});
 
 async function refreshRewards(){if(!token)return;const credential=token;try{
  const [colors,catalog,visits]=await Promise.all([api('/api/session/palette'),api('/api/session/catalog'),api('/api/session/visits')]);
  if(token!==credential)return;palette=colors;renderPalette();renderCatalog(catalog);$('mock-visit').hidden=!visits.simulationEnabled;
  $('visit-state').textContent=visits.rewards.some(r=>r.regionId==='gyeongju')?'경주 모의 방문 보상 지급 완료 · 실제 방문 인증 아님':'아직 모의 방문 보상이 없어요.';
 }catch{}}
-$('mock-route').onclick=()=>busy($('mock-route'),async()=>{const start=Date.now();for(let i=0;i<=8;i++)await api('/api/session/visits/mock','POST',{source:'simulation',latitude:35.8347,longitude:129.219,timestamp:start+i*15000});await refreshRewards();status('2분 경로를 가속 재생했어요. 모의 방문 보상을 확인해주세요.');});
+$('mock-route').onclick=()=>busy($('mock-route'),async()=>{
+ const {mockLastSample,policy}=await api('/api/session/visits');
+ const start=Math.max(Date.now(),(mockLastSample??0)+policy.maxGapMs+1);
+ for(let elapsed=0;elapsed<=policy.dwellMs;elapsed+=15000)
+   await api('/api/session/visits/mock','POST',{source:'simulation',...policy.center,timestamp:start+elapsed});
+ await refreshRewards();await refreshRevisit();openMenu(null);
+ document.querySelector('.sketch-workspace').scrollTop=0;
+ status('2분 경로를 가속 재생했어요. 모의 방문 결과를 확인해주세요.');
+});
 setInterval(()=>{if(!document.hidden)refreshRewards();},5000);refreshRewards();
 
 for(const button of document.querySelectorAll('[data-eraser-mode]'))button.onclick=()=>{eraserMode=button.dataset.eraserMode;for(const option of document.querySelectorAll('[data-eraser-mode]'))option.setAttribute('aria-pressed',String(option===button));$('eraser').title=eraserMode==='stroke'?'획 지우기':'부분 지우기';$('eraser-options').hidden=true;$('eraser').setAttribute('aria-expanded','false');};

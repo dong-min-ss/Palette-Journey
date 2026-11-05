@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { validateStrokes } from '../core/artwork.mjs';
 import { validateStickerPlacements } from '../core/journey.mjs';
+import { CATALOG_CITIES } from '../core/catalog.mjs';
 import { initializeStickers, ownedStickers } from './stickers.mjs';
 
 function name(value, max = 80) {
@@ -103,6 +104,8 @@ export class DiaryStore {
     this.db.exec('BEGIN IMMEDIATE');
     try{
       const current=this.page(token,id);
+      const regionId=body.regionId===undefined?current.regionId??null:body.regionId;
+      if(regionId!==null&&!CATALOG_CITIES.some(city=>city.id===regionId))throw new Error('INVALID_DIARY');
       if(current.revision!==body.revision)throw new Error('ARTWORK_CONFLICT');
       if(body.template!==current.template)throw new Error('INVALID_DIARY');
       const strokes=validateStrokes(body.strokes,this.accounts.sessionPalette(token));
@@ -116,7 +119,7 @@ export class DiaryStore {
         return {...item,strokes:paint};
       });
       if(totalPoints>20000)throw new Error('INVALID_ARTWORK');
-      const data={title,entryDate:entryDate(body.entryDate??current.entryDate),text:body.text,template:current.template,strokes,stickers,legacyRegions:current.legacyRegions};
+      const data={title,entryDate:entryDate(body.entryDate??current.entryDate),regionId,text:body.text,template:current.template,strokes,stickers,legacyRegions:current.legacyRegions};
       this.db.prepare('UPDATE pages SET data=?,revision=revision+1 WHERE id=?').run(JSON.stringify(data),id);
       this.db.exec('COMMIT');return {...current,...data,revision:current.revision+1};
     }catch(error){this.db.exec('ROLLBACK');throw error;}

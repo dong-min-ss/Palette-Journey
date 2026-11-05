@@ -11,12 +11,12 @@ function inside(s,policy) {
   return 6371000*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))<=policy.radiusMeters;
 }
 export class VisitStore {
-  constructor(accounts){this.accounts=accounts;accounts.db.exec(`
+  constructor(accounts,revisits){this.accounts=accounts;this.revisits=revisits;accounts.db.exec(`
     CREATE TABLE IF NOT EXISTS visit_progress(owner_hash TEXT PRIMARY KEY, entered INTEGER, last_sample INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS visit_rewards(owner_hash TEXT NOT NULL, region_id TEXT NOT NULL, source TEXT NOT NULL, acquired_at TEXT NOT NULL, PRIMARY KEY(owner_hash,region_id,source));`);
     if(!accounts.db.prepare('PRAGMA table_info(visit_progress)').all().some(c=>c.name==='region_id')){accounts.db.exec("ALTER TABLE visit_progress ADD COLUMN region_id TEXT; UPDATE visit_progress SET region_id='gyeongju' WHERE entered IS NOT NULL");}
   }
-  state(token){const a=this.accounts,owner=a.participantOwner(token);return {policy:MOCK_VISIT_POLICY,policies:MOCK_VISIT_POLICIES,simulationEnabled:a.mockLocationAccess===true,rewards:a.db.prepare('SELECT region_id AS regionId, source, acquired_at AS acquiredAt FROM visit_rewards WHERE owner_hash=?').all(owner)};}
+  state(token){const a=this.accounts,owner=a.participantOwner(token);return {policy:MOCK_VISIT_POLICY,policies:MOCK_VISIT_POLICIES,simulationEnabled:a.mockLocationAccess===true,mockLastSample:a.db.prepare('SELECT last_sample FROM visit_progress WHERE owner_hash=?').get(owner)?.last_sample??null,rewards:a.db.prepare('SELECT region_id AS regionId, source, acquired_at AS acquiredAt FROM visit_rewards WHERE owner_hash=?').all(owner)};}
   vehicle(token,s){
     const a=this.accounts; a.participantOwner(token);
     if(a.mockLocationAccess!==true)throw new Error('SIMULATION_DISABLED');
@@ -42,6 +42,7 @@ export class VisitStore {
       let awarded=false;
       if(entered!==null&&s.timestamp-entered>=policy.dwellMs){
         awarded=this.award(owner,policy);
+        if(previous.last_sample-entered<policy.dwellMs)this.revisits?.arrive(owner,policy.regionId);
       }
       db.exec('COMMIT');return {...this.state(token),regionId:policy?.regionId??null,regionName:policy?.name??null,awarded,dwellMs:entered===null?0:s.timestamp-entered};
     }catch(e){db.exec('ROLLBACK');throw e;}

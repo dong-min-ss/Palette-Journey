@@ -96,6 +96,11 @@ body:has(#studio:not([hidden])){background:#eff1e9}.appbar{height:72px;border-co
 
 .eraser-outline{position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-50%);border:1px solid #111;border-radius:50%;box-shadow:0 0 0 1px #fff,inset 0 0 0 1px #fff;box-sizing:border-box}
 .eraser-outline[hidden]{display:none}
+
+#revisit-card{position:sticky;top:0;z-index:1;width:min(100%,720px);padding:16px 20px;flex-shrink:0;background:#edf3e5}
+#revisit-card p{margin:6px 0 10px;font-size:13px}
+#revisit-card button{font-size:13px;min-height:40px;padding:8px 12px}
+#revisit-setting[aria-pressed="true"]{background:#174f40;color:#fff}
 /* Floating palette stays attached to the drawing toolbar on every screen size. */
 .tool-dock .quick-colors{position:absolute;bottom:calc(100% + 12px);right:0;width:min(440px,calc(100vw - 28px));background:#fffefb;border:1px solid var(--line);border-radius:20px;padding:12px 14px;box-shadow:0 8px 30px #17351e26;color:var(--ink)}
 .quick-colors p{margin:0 0 8px;font-size:12px;line-height:1.5;color:var(--forest);font-weight:600}
