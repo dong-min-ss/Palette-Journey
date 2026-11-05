@@ -19,9 +19,15 @@ public class VehicleConnectionActivity extends VehicleActivity {
     private final Handler handler=new Handler();
     private TextView status,codeLabel,rewards;private EditText code,origin;private Spinner pages;private ImageView qr;
     private String token,codeInput,originInput;private int pagePosition;private JSONArray pageList=new JSONArray();
-    private LinearLayout root;private Button startPairing,issueQr,sharePage;private boolean working=false,visible=false,connected=false;private int qrGeneration=0;
+    private LinearLayout root;private Button startPairing,issueQr,sharePage;private boolean working=false,visible=false,connected=false,polling=false;private int qrGeneration=0,commandGeneration=0;
     interface Work {void run()throws Exception;}
-    private void run(Work work){if(working)return;codeInput=code==null?"":code.getText().toString();originInput=origin==null?"":origin.getText().toString();pagePosition=pages==null?-1:pages.getSelectedItemPosition();working=true;setButtons(false);executor.execute(()->{try{work.run();}catch(Exception e){handler.post(()->{if(token==null||"HTTP 401".equals(e.getMessage()))connected=false;status.setText("연결을 확인해주세요. 세션이 만료됐다면 다시 연결할 수 있어요.");});}finally{handler.post(()->{working=false;setButtons(true);});}});}
+    private void run(Work work){if(working)return;commandGeneration++;codeInput=code==null?"":code.getText().toString();originInput=origin==null?"":origin.getText().toString();pagePosition=pages==null?-1:pages.getSelectedItemPosition();working=true;setButtons(false);executor.execute(()->{try{work.run();}catch(Exception e){handler.post(()->showConnectionError(e));}finally{handler.post(()->{working=false;setButtons(true);});}});}
+    private void showConnectionError(Exception error){
+        if(isDestroyed())return;
+        boolean expired=token==null||"HTTP 401".equals(error.getMessage());
+        if(expired){connected=false;qrGeneration++;hideQr();}
+        status.setText(expired?"가족 연결이 만료됐어요. 가족 연결 시작을 눌러주세요.":"서버에 연결하지 못했어요. PC의 서버 실행과 접속 주소를 확인해주세요.");
+    }
     private void setButtons(boolean enabled){
         setButtons(root,enabled);
         if(startPairing!=null)startPairing.setVisibility(connected?android.view.View.GONE:android.view.View.VISIBLE);
@@ -36,8 +42,8 @@ public class VehicleConnectionActivity extends VehicleActivity {
         if(!BuildConfig.DEBUG||!(Build.HARDWARE.contains("ranchu")||Build.HARDWARE.contains("goldfish"))){status.setText("차량 상태 미확인: 연결 조작이 잠겨 있어요.");return;}
         status.setText("가족을 연결하고 휴대폰으로 이어 그려요.");
         code=new EditText(this);code.setHint("기존 웹의 24자리 연결 코드");code.setSingleLine(true);root.addView(code);
-        button("기존 웹 가족에 연결",()->{String input=codeInput.trim().toLowerCase(java.util.Locale.ROOT);if(!input.matches("[a-f0-9]{24}"))throw new Exception();String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",input),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
-        button("차량 가족 연결 시작·재연결",()->{String owner=VehicleApi.load(this,"owner");if(owner==null){owner=VehicleApi.randomToken();VehicleApi.save(this,"owner",owner);}VehicleApi.request("/api/account","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),candidate);VehicleApi.save(this,candidate);token=candidate;loadLibrary();});
+        button("기존 웹 가족에 연결",()->{String input=codeInput.trim().toLowerCase(java.util.Locale.ROOT);if(!input.matches("[a-f0-9]{24}"))throw new Exception();String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",input),candidate);VehicleApi.save(this,candidate);token=candidate;clearPairing();loadLibrary();});
+        button("차량 가족 연결 시작·재연결",()->{String owner=VehicleApi.load(this,"owner");if(owner==null){owner=VehicleApi.randomToken();VehicleApi.save(this,"owner",owner);}VehicleApi.request("/api/account","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String candidate=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),candidate);VehicleApi.save(this,candidate);token=candidate;clearPairing();loadLibrary();});
         button("새 시연 가족 · 지역 잠금 상태",()->{String owner=VehicleApi.randomToken();VehicleApi.request("/api/account/demo","PUT",new JSONObject(),owner);JSONObject session=VehicleApi.request("/api/sessions","POST",new JSONObject(),owner);String member=VehicleApi.randomToken();VehicleApi.request("/api/sessions/join","POST",new JSONObject().put("code",session.getString("code")),member);VehicleApi.saveDemo(this,member);token=member;clearPairing();loadLibrary();});
         button("기존 가족으로 돌아가기",()->{VehicleApi.useDemo(this,false);clearPairing();token=VehicleApi.load(this);if(token==null){handler.post(()->{connected=false;status.setText("기존 연결이 없어요. 가족 연결 코드를 입력해주세요.");rewards.setText("");pageList=new JSONArray();pages.setAdapter(DevUi.spinner(this,new String[]{}));});return;}loadLibrary();});
         rewards=new TextView(this);root.addView(rewards);
@@ -76,9 +82,10 @@ public class VehicleConnectionActivity extends VehicleActivity {
     private void clearPairing(){handler.post(()->{qrGeneration++;hideQr();codeLabel.setText("가족이 변경됐어요. QR을 다시 발급해주세요.");});}
     private void requireToken()throws Exception{if(token==null)throw new Exception();}
     private void refreshRewards()throws Exception{
+        String credential=token;
         JSONObject palette=VehicleApi.request("/api/session/palette","GET",null,token),catalog=VehicleApi.request("/api/session/catalog","GET",null,token);
         JSONArray colors=palette.getJSONArray("colors"),stickers=catalog.getJSONArray("stickers");int owned=0;for(int i=0;i<stickers.length();i++)if(stickers.getJSONObject(i).optBoolean("acquired"))owned++;
-        String value=colors.length()+"색 · 스티커 "+owned+"개"+(VehicleApi.isDemo(this)?" · 시연 가족":"");handler.post(()->{if(!isDestroyed())rewards.setText(value);});
+        String value=colors.length()+"색 · 스티커 "+owned+"개"+(VehicleApi.isDemo(this)?" · 시연 가족":"");handler.post(()->{if(visible&&!isDestroyed()&&credential.equals(token))rewards.setText(value);});
     }
     private void loadLibrary()throws Exception{
         refreshRewards();
@@ -86,10 +93,33 @@ public class VehicleConnectionActivity extends VehicleActivity {
         String webOrigin=connection.optString("webOrigin","http://localhost:3000");
         JSONArray list=library.getJSONArray("pages"),diaries=library.getJSONArray("diaries"),children=library.getJSONArray("children"),trips=library.getJSONArray("trips");String[] names=new String[list.length()];
         for(int i=0;i<list.length();i++){JSONObject page=list.getJSONObject(i);String prefix="";for(int j=0;j<diaries.length();j++)if(diaries.getJSONObject(j).getString("id").equals(page.getString("diaryId"))){JSONObject diary=diaries.getJSONObject(j);prefix=diary.getString("title")+" / ";for(int k=0;k<children.length();k++)if(children.getJSONObject(k).getString("id").equals(diary.getString("childId")))prefix=children.getJSONObject(k).getString("name")+" / "+prefix;for(int k=0;k<trips.length();k++)if(trips.getJSONObject(k).getString("id").equals(diary.getString("tripId")))prefix=trips.getJSONObject(k).getString("title")+" / "+prefix;}names[i]=prefix+page.getString("title");}
-        handler.post(()->{if(isDestroyed())return;connected=true;pageList=list;if(!getPreferences(0).contains("webOrigin"))origin.setText(webOrigin);pages.setAdapter(DevUi.spinner(this,names));JSONObject page=connection.optJSONObject("page");status.setText("연결됨 · "+(page==null?"그림 선택 대기":page.optString("title"))+"");});
+        handler.post(()->{if(isDestroyed())return;connected=true;pageList=list;if(!getPreferences(0).contains("webOrigin"))origin.setText(webOrigin);pages.setAdapter(DevUi.spinner(this,names));JSONObject page=connection.optJSONObject("page");status.setText("연결됨 · "+(page==null?"그림 선택 대기":page.optString("title"))+"");setButtons(!working);});
     }
-    private final Runnable poll=new Runnable(){public void run(){if(!visible)return;if(token!=null&&!working)VehicleConnectionActivity.this.run(()->{refreshRewards();JSONObject connection=VehicleApi.request("/api/session/connection","GET",null,token);handler.post(()->{JSONObject page=connection.optJSONObject("page");status.setText("연결됨 · "+(page==null?"그림 선택 대기":page.optString("title"))+"");});});handler.postDelayed(this,5000);}};
+    private void pollConnection(){
+        if(token==null||working||polling)return;
+        polling=true;
+        int expected=commandGeneration;
+        executor.execute(()->{
+            try{
+                refreshRewards();
+                JSONObject connection=VehicleApi.request("/api/session/connection","GET",null,token);
+                handler.post(()->{
+                    if(!visible||isDestroyed()||expected!=commandGeneration)return;
+                    if(!connected){run(VehicleConnectionActivity.this::loadLibrary);return;}
+                    JSONObject page=connection.optJSONObject("page");
+                    String message="연결됨 · "+(page==null?"그림 선택 대기":page.optString("title"));
+                    if(!message.contentEquals(status.getText()))status.setText(message);
+                });
+            }catch(Exception error){
+                handler.post(()->{
+                    if(!visible||isDestroyed()||expected!=commandGeneration)return;
+                    showConnectionError(error);setButtons(!working);
+                });
+            }finally{handler.post(()->polling=false);}
+        });
+    }
+    private final Runnable poll=new Runnable(){public void run(){if(!visible)return;pollConnection();handler.postDelayed(this,5000);}};
     @Override protected void onStart(){super.onStart();visible=true;handler.postDelayed(poll,5000);}
-    @Override protected void onStop(){super.onStop();visible=false;handler.removeCallbacks(poll);qrGeneration++;if(qr!=null)hideQr();if(codeLabel!=null)codeLabel.setText("QR은 다시 발급해주세요.");}
+    @Override protected void onStop(){super.onStop();visible=false;commandGeneration++;handler.removeCallbacks(poll);qrGeneration++;if(qr!=null)hideQr();if(codeLabel!=null)codeLabel.setText("QR은 다시 발급해주세요.");}
     @Override protected void onDestroy(){super.onDestroy();handler.removeCallbacksAndMessages(null);executor.shutdownNow();}
 }
