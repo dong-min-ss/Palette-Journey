@@ -36,6 +36,7 @@ android {
 }
 
 dependencies {
+    implementation("ai.pleos.playground:Vehicle:2.3.2")
     implementation("com.google.zxing:core:3.5.3")
     implementation("ai.pleos.playground:FusedLocation:1.1.3")
     implementation("ai.pleos.playground:TextToSpeech:3.3.1")

@@ -246,6 +246,7 @@ public class MainActivity extends Activity {
         DevUi.moveTo(root,(android.view.View)recordingNotice.getParent());
         DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         DevUi.home(root,journeyBook,collectionButton,webConnection,openRecordings,devDrive);
+        Button ambient=new Button(this);ambient.setText("색 조명 연동 · 정차 중 시연");ambient.setOnClickListener(v->startActivity(new Intent(this,AmbientActivity.class)));root.addView(ambient,Math.min(getResources().getConfiguration().screenWidthDp>=650?3:5,root.getChildCount()),new LinearLayout.LayoutParams(-1,-2));
         beginAnswer.setTag("primary-action");
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         updateSpeech("음성 서비스 연결 전");

@@ -58,3 +58,7 @@ $fixture = Get-Content evidence/phone-fixture.json -Raw | ConvertFrom-Json
 ```
 
 `pm clear`는 시험 전용 폰 앱 연결/임시 기록만 지운다. 사용자 가족으로 연결한 뒤에는 실행하지 않는다. 기기 검사는 실제 WebView 터치 획·MediaRecorder 녹음·일시정지·서버 저장·재접속 재생과 여행책 버튼 간격을 검증한다.
+
+## 그림 색과 조명
+
+차량 홈의 **색 조명 연동 · 정차 중 시연**을 열고, 폰 **차량 연결 → 색 조명 연동 켜기** 후 색을 고른다. P·속도0·콘솔 연결 상태에서 같은 HEX 적용·재조회를 확인한다. [범위와 중지 조건](AMBIENT_DEMO.md).

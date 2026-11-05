@@ -12,6 +12,7 @@ import { VisitStore } from './visits.mjs';
 import { DriveStore } from './drive.mjs';
 import { RevisitStore } from './revisits.mjs';
 import { ownedStickers } from './stickers.mjs';
+import { AmbientStore } from './ambient.mjs';
 
 async function readJson(req) {
   const chunks=[];let length=0;
@@ -24,6 +25,7 @@ async function readJson(req) {
 }
 
 export function createApp(store,options={}) {
+  const ambient=new AmbientStore(store);
   const diaries=new DiaryStore(store),voice=new VoiceStore(diaries),connection=new ConnectionStore(store,diaries),conversation=new ConversationStore(voice,options.synthesizeQuestions);
   const revisits=new RevisitStore(store),visits=new VisitStore(store,revisits);
   const drive=new DriveStore(store,visits);
@@ -38,6 +40,7 @@ export function createApp(store,options={}) {
       for(const item of STICKERS)for(const suffix of ['', '-outline']){const path=item.asset.replace('.svg',suffix+'.svg');assets[path]=[path.slice(1),'image/svg+xml'];}
       assets['/catalog-view.mjs']=['assets/catalog-view.mjs','text/javascript; charset=utf-8'];
       assets['/catalog-view.css']=['assets/catalog-view.css','text/css; charset=utf-8'];
+      assets['/ambient.mjs']=['ambient.mjs','text/javascript; charset=utf-8'];
       assets['/voice.mjs']=['voice.mjs','text/javascript; charset=utf-8'];
       assets['/stickers.mjs']=['stickers.mjs','text/javascript; charset=utf-8'];
       if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
@@ -60,6 +63,9 @@ export function createApp(store,options={}) {
         else if((req.method==='PUT'||req.method==='DELETE')&&!req.url.endsWith('/audio'))result=voice.write(token,id,await readJson(req),req.method==='DELETE');
         else{res.statusCode=405;res.end(JSON.stringify({error:'METHOD_NOT_ALLOWED'}));return;}
       }
+      else if(req.method==='GET'&&req.url==='/api/session/ambient')result=ambient.get(token);
+      else if(req.method==='PUT'&&req.url==='/api/session/ambient')result=ambient.set(token,await readJson(req));
+      else if(req.method==='POST'&&req.url==='/api/session/ambient/ack')result=ambient.ack(token,await readJson(req));
       else if(req.method==='GET'&&req.url==='/api/session/connection')result=connection.get(token);
       else if(req.method==='PUT'&&req.url==='/api/session/connection')result=connection.set(token,await readJson(req));
       else if(req.method==='POST'&&req.url==='/api/session/invitations')result=store.invite(token);
@@ -109,7 +115,7 @@ export function createApp(store,options={}) {
       const codes = { INVALID_DRIVE:400, DRIVE_NOT_STARTED:409, DEMO_ONLY:403, INVALID_DEMO_ACCOUNT:409, SIMULATION_DISABLED:403,INVALID_LOCATION:400, CONVERSATION_UNAVAILABLE:503,CONNECTION_CONFLICT:409,INVALID_VOICE:400,VOICE_CONFLICT:409,VOICE_NOT_FOUND:404, UNAUTHORIZED: 401, NO_TICKET: 409, INVALID_COLOR: 400, INVALID_JSON: 400,
         BODY_TOO_LARGE: 413, INVALID_SESSION: 400, PARTICIPANT_IN_USE: 409, SESSION_NOT_FOUND: 404,
         INVALID_ARTWORK: 400, ARTWORK_CONFLICT: 409, INVALID_DIARY:400,DIARY_NOT_FOUND:404,INVALID_STICKER_PLACEMENT:400,INVALID_REVISIT:400 };
-      res.statusCode = codes[error.message] ?? 500;
+      res.statusCode = ({INVALID_LIGHT:400,LIGHT_CONFLICT:409})[error.message]??codes[error.message] ?? 500;
       res.end(JSON.stringify({ error: res.statusCode === 500 ? 'INTERNAL_ERROR' : error.message }));
     }
   });

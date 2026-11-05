@@ -138,3 +138,8 @@ body:has(#studio:not([hidden])){background:#eff1e9}.appbar{height:72px;border-co
 .entry-conversation #voice-start,.entry-conversation #voice-save{background:var(--forest);color:white}
 .entry-conversation #conversation-details{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 @media(max-width:760px){.entry-conversation .voice-record-actions button,.entry-conversation .voice-draft-actions button{flex:1 1 130px}}
+
+#panel-connect .book-settings{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+#panel-connect .book-settings h3{margin:0 0 12px}
+#panel-connect .book-settings p{line-height:1.7}
+#panel-connect #ambient-toggle{margin:8px 0}

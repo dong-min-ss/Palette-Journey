@@ -1,10 +1,12 @@
 import {mountCatalog} from './catalog-view.mjs';
 import {createVoiceDiary} from './voice.mjs';
+import {createAmbientSync} from './ambient.mjs';
 import {createStickerEditor,hitPaintStroke} from './stickers.mjs';
 const $ = id => document.getElementById(id);
 const storageKey = 'palette-journey-participant';
 const names = { red:'빨강', orange:'주황', yellow:'노랑', green:'초록', blue:'파랑', purple:'보라', pink:'핑크', brown:'브라운', white:'화이트', black:'블랙', gray:'그레이' };
 let token = null, palette = null, selected = null, selectedColorId=null, revision = 0, dirty = false, pendingJoin = null, editVersion = 0;
+const ambientSync=createAmbientSync({api,getToken:()=>token});
 let strokes=[], legacyRegions={}, active=null, undone=[], tool='paint';
 let eraserMode='partial',strokeHistory=[];
 let library=null,currentPage=null,saveTimer=null,saving=null,autoBlocked=false;
@@ -67,6 +69,7 @@ function renderPalette() {
   if (!palette.colors.some(c=>c.hex===selected)) selected=palette.colors[0].hex;
   const chosen=palette.colors.find(c=>c.id===selectedColorId&&c.hex===selected)??palette.colors.find(c=>c.hex===selected);
   selectedColorId=chosen.id;
+  ambientSync.select(chosen.id);
   for (const color of palette.colors) {
     const name = names[color.id] ?? color.name ?? color.hex;
     const button=document.createElement('button'); button.type='button'; button.className='swatch';
@@ -208,6 +211,7 @@ $('join-form').onsubmit = event => {
     if (pendingJoin?.code!==code) pendingJoin={code, token:randomToken()};
     const candidate=pendingJoin.token;
     await api('/api/sessions/join','POST',{code},candidate);
+    ambientSync.reset();
     // Save before loading: a network retry must retain the already joined credential.
     localStorage.setItem(storageKey,candidate); token=candidate;
     await load(); pendingJoin=null; $('code').value=''; status('여행에 연결됐어요. 색칠을 시작해보세요.');
@@ -285,7 +289,7 @@ $('unlock-form').onsubmit=event=>{event.preventDefault();busy($('unlock'),async(
   palette=await api('/api/session/palette/personal','POST',{hex:$('personal').value});selected=$('personal').value.toUpperCase();renderPalette();status('새 색이 팔레트에 추가됐어요.');
 });};
 $('disconnect').onclick=()=>{
-  if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 연결을 나가주세요.');return;}voiceDiary.reset();
+  if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 연결을 나가주세요.');return;}voiceDiary.reset();ambientSync.reset();
   if(dirty&&!confirm('저장하지 않은 그림이 있어요. 연결에서 나갈까요?'))return;
   clearTimeout(saveTimer);localStorage.removeItem(storageKey);token=null;palette=null;dirty=false;pendingJoin=null;currentPage=null;
   $('revisit-card').hidden=true;$('revisit-setting').disabled=true;revisitMemory=null;
