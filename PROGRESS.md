@@ -432,3 +432,5 @@
 - 가족 연결 전에는 시작을 바로 제공하고 QR과 페이지 공유를 비활성화한다. QR을 발급하기 전에는 빈 이미지 영역을 숨긴다.
 - `gradlew.bat --no-daemon :app:assembleDebug :app:testDebugUnitTest --console=plain` 성공. Pleos v2.1.0에 업데이트 설치 후 홈 버튼 4개, 가족 연결 화면 이동, 초기 시작 버튼 활성 및 QR 버튼 비활성을 확인했다.
 - README에 모바일 원본 HEX 4종의 에뮬레이터 조명 쓰기·재조회 검증을 기록했다. 본앱 조명 연결과 실차 LED 검증은 별도 범위다.
+- 차량 공통 테마를 웹과 같은 아이보리 배경·종이색 카드로 변경했다. 홈에 기존 브랜드 마크를 배치하고, 모래색 제목 영역과 갈색 강조 상태를 적용했다. 접기 메뉴의 이중 테두리와 버튼 그림자를 정리했고 차량 사전 WebView에도 같은 색을 적용했다.
+- `npm.cmd run check` 65개 통과, Android assembleDebug/testDebugUnitTest 성공. Pleos 업데이트 설치 후 홈 캡처를 육안 확인하고 가족 연결과 색·스티커 사전 이동을 확인했다.

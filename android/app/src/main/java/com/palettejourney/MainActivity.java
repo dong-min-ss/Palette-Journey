@@ -247,7 +247,7 @@ public class MainActivity extends Activity {
         DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         DevUi.home(root,journeyBook,collectionButton,webConnection,openRecordings,devDrive);
         beginAnswer.setTag("primary-action");
-        ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
+        ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
         updateSpeech("음성 서비스 연결 전");
     }
 
