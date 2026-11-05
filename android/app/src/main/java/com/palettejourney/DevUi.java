@@ -34,19 +34,34 @@ final class DevUi {
         android.graphics.drawable.StateListDrawable states=new android.graphics.drawable.StateListDrawable();
         for(int i=0;i<3;i++){GradientDrawable shape=panel(b.getContext());shape.setColor(i==0?BG:i==1?Color.rgb(43,91,74):primary?ACCENT:PANEL);states.addState(i==0?new int[]{-android.R.attr.state_enabled}:i==1?new int[]{android.R.attr.state_pressed}:new int[]{},shape);}
         b.setBackgroundTintList(null);b.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(0x227fdfba),states,null));
-        if("destination-action".equals(b.getTag())){b.setBackgroundColor(Color.TRANSPARENT);b.setTextSize(27);}
         b.setMinHeight(dp(b.getContext(),60));b.setPadding(dp(b.getContext(),20),dp(b.getContext(),14),dp(b.getContext(),20),dp(b.getContext(),14));
+        if("destination-action".equals(b.getTag()))b.setMinHeight(dp(b.getContext(),94));
     }
     static void home(LinearLayout root,Button book,Button collection,Button family,Button recordings,Button developer){
         java.util.List<View> rest=new java.util.ArrayList<>();
         for(int i=2;i<root.getChildCount();i++){View v=root.getChildAt(i);if(v!=book&&v!=collection&&v!=family&&v!=recordings&&v!=developer)rest.add(v);}
         root.removeAllViews();int pad=dp(root.getContext(),24);root.setPadding(pad,pad,pad,pad);
-        TextView brand=text(root.getContext(),"●  PALETTE JOURNEY",20);brand.setTextColor(Color.rgb(141,221,184));brand.setTag("brand-copy");brand.setLetterSpacing(.12f);root.addView(brand);
-        TextView greeting=text(root.getContext(),"오늘의 여행을, 오래 남을 이야기로",34);greeting.setTypeface(null,1);root.addView(greeting);
-        TextView subtitle=text(root.getContext(),"그림과 목소리로 모으는 우리 가족의 여행",20);subtitle.setTag("muted-copy");subtitle.setTextColor(MUTED);root.addView(subtitle);
-        Button[] buttons={book,collection,family,recordings};String[] captions={"그림과 대화를 다시 만나는 곳","여행하며 모은 색과 스티커","휴대폰으로 이어 그리기","차량에 간직한 목소리"};String[] marks={"01  JOURNAL","02  COLLECTION","03  CONNECT","04  VOICE"};
-        for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(root.getContext());root.addView(line,new LinearLayout.LayoutParams(-1,-2));for(int col=0;col<2;col++){int n=row*2+col;LinearLayout tile=new LinearLayout(root.getContext());tile.setOrientation(1);tile.setPadding(dp(root.getContext(),16),dp(root.getContext(),12),dp(root.getContext(),16),dp(root.getContext(),14));tile.setBackground(panel(root.getContext()));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(col==0?0:dp(root.getContext(),8),dp(root.getContext(),12),col==0?dp(root.getContext(),8):0,0);line.addView(tile,lp);TextView mark=text(root.getContext(),marks[n],16);mark.setTag("brand-copy");mark.setTextColor(Color.rgb(141,221,184));tile.addView(mark);buttons[n].setTag("destination-action");tile.setOnClickListener(v->{if(buttons[n].isEnabled())buttons[n].performClick();});buttons[n].setGravity(android.view.Gravity.START|android.view.Gravity.CENTER_VERTICAL);tile.addView(buttons[n],new LinearLayout.LayoutParams(-1,-2));TextView hint=text(root.getContext(),captions[n],18);hint.setTag("muted-copy");hint.setTextColor(MUTED);tile.addView(hint);}}
-        LinearLayout conversation=section(root,"함께 나누는 이야기");for(View v:rest)conversation.addView(v);
+        TextView brand=text(root.getContext(),"Palette Journey",30);
+        brand.setTypeface(null,Typeface.BOLD);brand.setAccessibilityHeading(true);root.addView(brand);
+        TextView subtitle=text(root.getContext(),"가족 그림일기 · 에뮬레이터 시연",20);subtitle.setTag("muted-copy");root.addView(subtitle);
+        Button[] buttons={book,family,collection,recordings};
+        String[] captions={"저장한 그림과 대화 보기","QR로 휴대폰 연결하기","여행에서 모은 색과 스티커 보기","차량에 저장한 녹음 듣기"};
+        int columns=root.getResources().getConfiguration().screenWidthDp>=650?2:1;
+        for(int i=0;i<buttons.length;i+=columns){
+            LinearLayout row=new LinearLayout(root.getContext());
+            root.addView(row,new LinearLayout.LayoutParams(-1,-2));
+            for(int j=i;j<i+columns;j++){
+                Button destination=buttons[j];
+                String title=destination.getText().toString();
+                android.text.SpannableString label=new android.text.SpannableString(title+"\n"+captions[j]);
+                label.setSpan(new android.text.style.AbsoluteSizeSpan(18,true),title.length()+1,label.length(),0);
+                label.setSpan(new android.text.style.StyleSpan(Typeface.NORMAL),title.length()+1,label.length(),0);
+                destination.setText(label);destination.setTag("destination-action");
+                destination.setGravity(android.view.Gravity.START|android.view.Gravity.CENTER_VERTICAL);
+                row.addView(destination);
+            }
+        }
+        LinearLayout conversation=section(root,"목소리로 이야기 남기기");for(View v:rest)conversation.addView(v);
         if(developer!=null){LinearLayout tools=fold(root,"개발 도구");tools.addView(developer);tools.addView(text(root.getContext(),"모의 주행 · 지역 해금 시연",18));}
     }
     static void styleTree(View v){
@@ -55,7 +70,7 @@ final class DevUi {
         else if(v instanceof EditText){EditText e=(EditText)v;e.setTextSize(22);e.setTextColor(TEXT);e.setHintTextColor(MUTED);e.setPadding(dp(v.getContext(),16),dp(v.getContext(),14),dp(v.getContext(),16),dp(v.getContext(),14));e.setBackground(panel(v.getContext()));}
         else if(v instanceof TextView){TextView t=(TextView)v;t.setTextColor("brand-copy".equals(t.getTag())?Color.rgb(141,221,184):"muted-copy".equals(t.getTag())?MUTED:TEXT);float sp=t.getTextSize()/v.getResources().getDisplayMetrics().scaledDensity;if(sp<20)t.setTextSize(20);}
         if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)styleTree(((ViewGroup)v).getChildAt(i));
-        if(v instanceof LinearLayout&&((LinearLayout)v).getOrientation()==LinearLayout.HORIZONTAL){LinearLayout row=(LinearLayout)v;boolean buttons=row.getChildCount()>0;for(int i=0;i<row.getChildCount();i++)buttons=buttons&&row.getChildAt(i) instanceof Button;if(buttons)for(int i=0;i<row.getChildCount();i++){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(v.getContext(),3),0,dp(v.getContext(),3),0);row.getChildAt(i).setLayoutParams(p);}}
+        if(v instanceof LinearLayout&&((LinearLayout)v).getOrientation()==LinearLayout.HORIZONTAL){LinearLayout row=(LinearLayout)v;boolean buttons=row.getChildCount()>0;for(int i=0;i<row.getChildCount();i++)buttons=buttons&&row.getChildAt(i) instanceof Button;if(buttons)for(int i=0;i<row.getChildCount();i++){View child=row.getChildAt(i);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(v.getContext(),3),"destination-action".equals(child.getTag())?dp(v.getContext(),8):0,dp(v.getContext(),3),0);child.setLayoutParams(p);}}
     }
     static ArrayAdapter<String> spinner(Context c,String[] names){return new ArrayAdapter<String>(c,android.R.layout.simple_spinner_dropdown_item,names){
         @Override public View getView(int p,View v,ViewGroup parent){View row=super.getView(p,v,parent);styleTree(row);row.setBackgroundColor(PANEL);return row;}

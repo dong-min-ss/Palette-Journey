@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     private void renderConversation() {
         if (conversationState == null) return;
         currentQuestion.setText(conversation.active() ? conversation.question() : QUESTION);
+        currentQuestion.setVisibility(conversation.active()?android.view.View.VISIBLE:android.view.View.GONE);
         conversationState.setText(conversation.active() ? "질문 " + conversation.number() + " / 4" : conversation.entries().isEmpty() ? "준비된 질문으로 대화해요" : recordingSaved ? "녹음 저장 완료" : "대화 완료 · 녹음을 저장해주세요");
         StringBuilder history = new StringBuilder();
         int index=1;
@@ -66,7 +67,7 @@ public class MainActivity extends Activity {
                 .append(entry.skipped ? "건너뛰었어요" : "확인한 답변: " + entry.answer).append("\n\n");
         }
         conversationHistory.setText(history.length()==0 ? "아직 대화가 없어요." : history.toString());
-        beginAnswer.setText(conversation.active() ? "지금 질문 듣기 / 다시 답하기" : conversation.entries().isEmpty() ? "대화 시연 시작" : "새 대화 시연 시작");
+        beginAnswer.setText(conversation.active() ? "질문 듣고 다시 답하기" : "이야기 녹음 시작");
         skipConversation.setEnabled(conversation.active());
         endConversation.setEnabled(conversation.active());
         conversationState.setVisibility(conversation.active()||!conversation.entries().isEmpty()?android.view.View.VISIBLE:android.view.View.GONE);
@@ -151,7 +152,6 @@ public class MainActivity extends Activity {
         addText(root, "가족과 남기는 여행 이야기 · 시뮬레이션", 20);
         LinearLayout speechDetails=DevUi.fold(root,"음성 연결 설정");
         addText(speechDetails, "에뮬레이터 전용 · Pleos TTS", 20);
-        addText(root, "오늘의 이야기", 28);
         currentQuestion = new TextView(this); currentQuestion.setTextSize(26); currentQuestion.setText(QUESTION); root.addView(currentQuestion);
         speechStatus = new TextView(this);
         speechStatus.setId(R.id.tts_status);
@@ -174,13 +174,14 @@ public class MainActivity extends Activity {
         LinearLayout recordingNotice=DevUi.fold(root,"녹음·보관 안내");
         addText(recordingNotice, "최대 네 질문의 답변을 녹음해요. 확인 후 기기에 저장하고 선택한 그림에 올릴 수 있어요. 질문은 재합성 음성이며 생성형 AI 대화는 아니에요. 저장 전에는 화면을 나가면 녹음이 삭제돼요.",20);
         answerConsent = new CheckBox(this);
-        answerConsent.setText("보호자와 함께 녹음·보관에 동의해요"); root.addView(answerConsent);
+        answerConsent.setText("보호자와 함께 녹음에 동의해요"); root.addView(answerConsent);
         answerStatus = new TextView(this); answerStatus.setTextSize(20); root.addView(answerStatus);
+        answerStatus.setAccessibilityLiveRegion(android.view.View.ACCESSIBILITY_LIVE_REGION_POLITE);
         answerText = new TextView(this); answerText.setTextSize(26); answerText.setTextIsSelectable(true); root.addView(answerText);
         LinearLayout answerActions = new LinearLayout(this);
         beginAnswer = new Button(this); beginAnswer.setText("질문 듣고 답하기 / 다시 말하기");
         cancelAnswer = new Button(this); cancelAnswer.setText("답변 인식 취소");
-        confirmAnswer = new Button(this); confirmAnswer.setText("들은 내용이 맞아요 / 다음 질문");
+        confirmAnswer = new Button(this); confirmAnswer.setText("답변 확인 · 다음 질문");
         answerActions.addView(beginAnswer); answerActions.addView(cancelAnswer); answerActions.addView(confirmAnswer); root.addView(answerActions);
         answer = new PleosAnswerController(this, (status, text, busy) -> {
             answerStatus.setText(status); answerText.setText(text.isEmpty() ? "" : text);
@@ -217,14 +218,13 @@ public class MainActivity extends Activity {
         webConnection=new Button(this);webConnection.setText(R.string.family_connection);root.addView(webConnection);webConnection.setOnClickListener(v->startActivity(new Intent(this,VehicleConnectionActivity.class)));
         openRecordings.setOnClickListener(v->{if(openRecordings.isEnabled())startActivity(new Intent(this,RecordingsActivity.class));});
         // Primary destinations stay above the conversation; reference information stays collapsed below.
-        DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         ((android.view.ViewGroup)openRecordings.getParent()).removeView(openRecordings);root.addView(openRecordings,2,new LinearLayout.LayoutParams(-1,-2));
         root.removeView(webConnection);root.addView(webConnection,2,new LinearLayout.LayoutParams(-1,-2));
         journeyBook=new Button(this);journeyBook.setText("여행책 감상");root.addView(journeyBook,2,new LinearLayout.LayoutParams(-1,-2));journeyBook.setOnClickListener(v->startActivity(new Intent(this,JourneyBookActivity.class)));
         collectionButton=new Button(this);collectionButton.setText("색·스티커 사전");root.addView(collectionButton,3,new LinearLayout.LayoutParams(-1,-2));collectionButton.setOnClickListener(v->startActivity(new Intent(this,CollectionActivity.class)));
         if(BuildConfig.DEBUG){devDrive=new Button(this);devDrive.setText("개발자 주행 시연");root.addView(devDrive,4,new LinearLayout.LayoutParams(-1,-2));devDrive.setOnClickListener(v->startActivity(new Intent(this,DevDriveActivity.class)));}
         renderConversation();
-        answerStatus.setText("동의 후 대화를 시작해주세요.");
+        answerStatus.setText(emulatorTestAllowed()?"동의한 뒤 이야기 녹음을 시작할 수 있어요.":"녹음은 Pleos 에뮬레이터 시연에서 사용할 수 있어요.");
         answerText.setText("");
         beginAnswer.setOnClickListener(v -> beginConversationTurn());
         cancelAnswer.setOnClickListener(v -> cancelAnswerTurn());
@@ -243,6 +243,8 @@ public class MainActivity extends Activity {
             if (!checked) { if (answer.busy()) cancelAnswerTurn(); conversation.finish(); renderConversation(); }
             refreshAnswerButtons();
         });
+        DevUi.moveTo(root,(android.view.View)recordingNotice.getParent());
+        DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
         DevUi.home(root,journeyBook,collectionButton,webConnection,openRecordings,devDrive);
         beginAnswer.setTag("primary-action");
         ScrollView scroll = new ScrollView(this); scroll.addView(root); setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
