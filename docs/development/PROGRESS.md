@@ -1,5 +1,11 @@
 # 개발 현황
 
+## 2026-11-07 — 공모전 제출용 저장소 정리
+
+- 차량 디버그 APK를 빌드해 폰 보조 앱 APK와 함께 제공하고 SHA-256 체크섬을 기록했다. 두 APK의 v2 서명을 확인했다.
+- README를 경주 여행 시나리오 중심으로 재구성하고 조작 순서를 시연 가이드로 분리했다. 개발 기록과 기술 검토 문서는 docs/development로 이동했다.
+- Gradle :app:assembleDebug와 :app:testDebugUnitTest 성공. 에뮬레이터 검증 범위는 README에 표시했다.
+
 ## 2026-11-06 — 본앱 선택 색 조명 API 연동
 
 - 서버 AmbientStore·세션 인증 GET/PUT/ACK, 보유 색ID→원본 HEX, 명시 opt-in·2초 갱신·10초 만료·정확한 재조회 ACK·오래된 응답 차단 구현. 폰/웹 차량 연결에 켜기·끄기/상태 표시를 추가했다.

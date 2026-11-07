@@ -1,7 +1,10 @@
-# MVP 보조 앱 APK
+# 시연용 APK
 
-`palette-companion-mvp.apk`는 `android/:companion`의 개발용 자동 서명 APK다. Android 14/API 34 이상에 설치한다. PC 서버와 adb reverse가 필요한 폰 에뮬레이터 시연용이며 독립 오프라인 앱이 아니다. [실행·연결·녹음 순서](../PHONE_DEMO.md).
+| 앱 | 파일 | 대상 |
+| --- | --- | --- |
+| 차량 앱 | [palette-vehicle-mvp.apk](palette-vehicle-mvp.apk) | Pleos Connect v2.1.0 에뮬레이터 |
+| 폰 보조 앱 | [palette-companion-mvp.apk](palette-companion-mvp.apk) | Android 14(API 34) 이상 폰 에뮬레이터 |
 
-재생성: `./gradlew.bat :companion:assembleDebug`를 android 폴더에서 실행한 뒤 `companion/build/outputs/apk/debug/companion-debug.apk`를 이 파일로 복사한다. SHA-256은 `SHA256SUMS`에 기록한다. 개발용 서명 키는 저장소에 포함하지 않는다. 웹 화면은 실행 중인 PC 서버의 현재 소스를 사용한다.
+[시연 가이드](../MVP_FLOW.md)에 설치와 서버 연결 절차가 있습니다. 두 파일은 에뮬레이터 시연용 디버그 APK입니다. [SHA-256 체크섬](SHA256SUMS)으로 다운로드한 파일을 확인할 수 있습니다.
 
-차량용 앱은 별도 `:app` 모듈이다. `:app:assembleDebug` 결과 `android/app/build/outputs/apk/debug/app-debug.apk`를 차량 에뮬레이터에 설치한다.
+Windows에서 다시 빌드하려면 `android` 폴더에서 `.\gradlew.bat :app:assembleDebug :companion:assembleDebug`를 실행합니다. 차량 APK는 `app/build/outputs/apk/debug/app-debug.apk`, 폰 APK는 `companion/build/outputs/apk/debug/companion-debug.apk`에 생성됩니다.
