@@ -42,7 +42,7 @@ function redraw(){
   for(const stroke of strokes)drawStroke(stroke);if(active&&active.tool!=='strokeErase')drawStroke(active);
   ctx.globalCompositeOperation='source-over';$('undo').disabled=!strokes.length&&!strokeHistory.length;$('redo').disabled=!undone.length;
 }
-const messages = { CONNECTION_CONFLICT:'다른 기기에서 함께 볼 페이지를 바꿨어요. 연결 상태를 확인하고 다시 선택해주세요.', UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', NO_TICKET:'사용할 티켓이 없어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
+const messages = { CONNECTION_CONFLICT:'다른 기기에서 함께 볼 페이지를 바꿨어요. 연결 상태를 확인하고 다시 선택해주세요.', UNAUTHORIZED:'연결이 만료되거나 종료됐어요. 새 코드로 다시 연결해주세요.', INVALID_SESSION:'연결 코드가 잘못됐거나 만료됐어요.', ARTWORK_CONFLICT:'다른 기기에서 그림을 저장했어요. 현재 그림은 유지됩니다. 저장된 그림을 불러온 뒤 다시 작업해주세요.', INVALID_ARTWORK:'사용할 수 없는 색이나 그림 정보예요.' };
 messages.INVALID_DIARY='제목·별명과 글 길이를 확인해주세요. 제목은 비워둘 수 없어요.';
 messages.DIARY_NOT_FOUND='이 가족의 기록을 찾지 못했어요. 다시 연결해주세요.';
 messages.INVALID_STICKER_PLACEMENT='보유하지 않은 스티커이거나 페이지 밖으로 벗어난 배치예요.';
@@ -56,12 +56,12 @@ async function api(path, method='GET', body, credential=token) {
 }
 function error(error) {
   status(messages[error.message] ?? '요청을 완료하지 못했어요. 연결을 확인하고 다시 시도해주세요.');
-  if (error.message === 'UNAUTHORIZED') { token=null; $('connection').hidden=false; $('save').disabled=true; $('unlock').disabled=true; $('revisit-card').hidden=true; $('revisit-setting').disabled=true; revisitMemory=null; }
+  if (error.message === 'UNAUTHORIZED') { token=null; $('connection').hidden=false; $('save').disabled=true; $('revisit-card').hidden=true; $('revisit-setting').disabled=true; revisitMemory=null; }
 }
 async function busy(button, action) {
   button.disabled = true;
   try { await action(); } catch (e) { error(e); }
-  finally { button.disabled = !token && ['save','unlock'].includes(button.id); }
+  finally { button.disabled = !token && button.id === 'save'; }
 }
 let quickPaletteSignature=null;
 function renderPalette() {
@@ -77,7 +77,6 @@ function renderPalette() {
     button.setAttribute('aria-pressed',String(color.id===selectedColorId));
     button.onclick=()=>{selected=color.hex;selectedColorId=color.id;renderPalette();}; $('palette').append(button);
   }
-  $('tickets').textContent=`컬러티켓 ${palette.tickets}장`;
   $('current-color').style.backgroundColor=selected;
   $('selected').textContent=`선택한 색: ${names[chosen.id] ?? chosen.name ?? chosen.hex}`;
   $('quick-color-name').textContent=names[chosen.id]??chosen.name??chosen.hex;
@@ -109,7 +108,7 @@ async function load() {
   const remembered=localStorage.getItem('pj-last-page-'+library.familyId);
   const page=library.pages.find(p=>p.id===currentPage?.id)||library.pages.find(p=>p.id===remembered)||library.pages[0];
   if(page)await openPage(page.id);else{currentPage=null;$('page-date').value='';renderEntryHeading('그림일기를 선택해주세요.');strokes=[];legacyRegions={};redraw();}
-  $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false; $('unlock').disabled=false;
+  $('connection').hidden=true; $('studio').hidden=false; $('save').disabled=false;
   refreshRevisit();
 }
 function placeSticker(item){
@@ -285,9 +284,6 @@ $('reload').onclick=()=>busy($('reload'),async()=>{
   clearTimeout(saveTimer);if(currentPage)localStorage.removeItem('pj-draft-'+currentPage.id);dirty=false;
   await load();status('저장된 그림을 불러왔어요.');
 });
-$('unlock-form').onsubmit=event=>{event.preventDefault();busy($('unlock'),async()=>{
-  palette=await api('/api/session/palette/personal','POST',{hex:$('personal').value});selected=$('personal').value.toUpperCase();renderPalette();status('새 색이 팔레트에 추가됐어요.');
-});};
 $('disconnect').onclick=()=>{
   if(voiceDiary.blocked()){status('음성 녹음을 종료하고 저장하거나 버린 뒤 연결을 나가주세요.');return;}voiceDiary.reset();ambientSync.reset();
   if(dirty&&!confirm('저장하지 않은 그림이 있어요. 연결에서 나갈까요?'))return;

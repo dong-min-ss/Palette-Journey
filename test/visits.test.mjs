@@ -21,7 +21,7 @@ test('five city rewards remain isolated, reset dwell across cities and never gra
    assert.equal(v.state(member).rewards.length,i+1);assert.equal(a.sessionPalette(member).colors.length,11+(i+1)*3);assert.equal(ownedStickers(a,member).filter(s=>s.visitId).length,(i+1)*2);
   }
   for(const policy of MOCK_VISIT_POLICIES)for(let i=0;i<=8;i++){assert.equal(send(policy).awarded,false);timestamp+=15000;}
-  assert.equal(v.state(member).rewards.length,5);assert.equal(a.sessionPalette(member).tickets,1);
+  assert.equal(v.state(member).rewards.length,5);
   // One minute in one city plus one minute in another is not a continuous visit.
   const fresh=token(),person=token();a.registerDemo(fresh);a.joinSession(person,a.createSession(fresh).code);
   for(let i=0;i<=4;i++)v.sample(person,{...sample(i*15000),longitude:129.219});
@@ -57,7 +57,7 @@ test('vehicle HTTP award reaches family clients once, survives reconnect/restart
   for(let i=0;i<=8;i++){const result=await gps(35.8347);assert.equal(result.awarded,i===8);now+=15000;}
   const earned=await catalog(phone);assert.ok(regional(earned).every(i=>i.unlocked&&i.rewardSource==='simulation'&&!i.developmentUnlocked));
   assert.deepEqual(await catalog(vehicle),earned);assert.ok([...earned.colors,...earned.stickers].filter(i=>i.regionId&&i.regionId!=='gyeongju').every(i=>!i.unlocked));
-  const palette=await call(phone,'/api/session/palette');assert.equal(palette.colors.length,14);assert.equal(palette.tickets,1);
+  const palette=await call(phone,'/api/session/palette');assert.equal(palette.colors.length,14);
   now+=15000;await gps(37);now+=15000;
   for(let i=0;i<=8;i++){assert.equal((await gps(35.8347)).awarded,false);now+=15000;}
   await call(owner,`/api/sessions/${session.id}`,'DELETE');
@@ -85,7 +85,7 @@ test('one atomic family award survives reentry, session recreation and DB restar
  try{
  a.developmentStickerAccess=true;assert.equal(ownedStickers(a,member).length,12);assert.equal(v.state(member).rewards.length,0);
  for(let t=0;t<=120000;t+=15000)v.sample(member,sample(t));
- assert.equal(v.state(member).rewards.length,1);assert.equal(a.sessionPalette(member).colors.length,14);assert.equal(a.sessionPalette(member).tickets,1);
+ assert.equal(v.state(member).rewards.length,1);assert.equal(a.sessionPalette(member).colors.length,14);
  const other=token();a.joinSession(other,a.invite(member).code);assert.deepEqual(a.sessionPalette(other),a.sessionPalette(member));
  assert.equal(ownedStickers(a,other).filter(s=>s.visitId).length,2);
  v.sample(member,sample(150000,37));for(let t=180000;t<=300000;t+=15000)assert.equal(v.sample(member,sample(t)).awarded,false);

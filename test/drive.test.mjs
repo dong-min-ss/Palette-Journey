@@ -15,7 +15,7 @@ test('console route requires movement then continuous stopped P; two cities sync
   const finish=id=>{select(id);for(let i=0;i<=30;i++)assert.equal(tick().awarded,false);assert.equal(d.state(member).distanceMeters,300);assert.equal(v.state(phone).rewards.length,id==='busan'?0:1);for(let i=0;i<6;i++)assert.equal(tick(0,4).awarded,i===5);};
   finish('busan');finish('jeju');assert.equal(v.state(phone).rewards.length,2);assert.equal(a.sessionPalette(phone).colors.length,17);
   for(let i=0;i<6;i++)assert.equal(tick(0,4).awarded,false);
-  const old=d.state(member).tripId;const palette=a.sessionPalette(phone);d.reset(member);assert.equal(v.state(phone).rewards.length,0);assert.equal(a.sessionPalette(phone).colors.length,11);assert.equal(a.sessionPalette(phone).tickets,palette.tickets);assert.throws(()=>d.tick(member,{source:'console-drive',tripId:old}),/DRIVE_NOT_STARTED/);
+  const old=d.state(member).tripId;d.reset(member);assert.equal(v.state(phone).rewards.length,0);assert.equal(a.sessionPalette(phone).colors.length,11);assert.throws(()=>d.tick(member,{source:'console-drive',tripId:old}),/DRIVE_NOT_STARTED/);
   finish('busan');assert.equal(v.state(phone).rewards.length,1);
  }finally{a.close();}
 });
@@ -29,9 +29,12 @@ test('stale signals, gaps, non-D and destination changes do not add route distan
 test('developer controls reject normal families, disabled simulation and unknown participants',()=>{
  const {a,d,member}=setup();try{const owner=token(),normal=token();a.register(owner);a.joinSession(normal,a.createSession(owner).code);for(const f of [()=>d.state(normal),()=>d.select(normal,'busan'),()=>d.reset(normal)])assert.throws(f,/DEMO_ONLY/);a.mockLocationAccess=false;assert.throws(()=>d.reset(member),/SIMULATION_DISABLED/);assert.throws(()=>d.state(token()));}finally{a.close();}
 });
-test('reset preserves personal colors, spent tickets, artwork and another family; clears all family visit streams',()=>{
+test('reset preserves previously saved colors, artwork and another family; clears all family visit streams',()=>{
  const {a,v,d,member,phone,select,tick}=setup();try{
-  createApp(a);a.unlock(member,'#123456',true);const key=a.participantOwner(member);
+  createApp(a);const key=a.participantOwner(member);
+  const saved = a.sessionPalette(phone);
+  saved.colors.push({id:'personal-123456',hex:'#123456',source:'personal'});
+  a.db.prepare('UPDATE accounts SET palette=? WHERE token_hash=?').run(JSON.stringify(saved),key);
   const otherOwner=token(),other=token();a.registerDemo(otherOwner);a.joinSession(other,a.createSession(otherOwner).code);
   for(let i=0;i<=8;i++)v.sample(other,{source:'simulation',timestamp:i*15000,latitude:35.8347,longitude:129.219});
   const foreign=a.sessionPalette(other);a.db.prepare('INSERT INTO artworks VALUES (?,?,?)').run(key,'{"saved":"unchanged"}',7);
@@ -39,7 +42,7 @@ test('reset preserves personal colors, spent tickets, artwork and another family
   v.sample(phone,{source:'simulation',timestamp:0,latitude:35.8347,longitude:129.219});
   // Separate vehicle streams belong to participants of the same family.
   for(const row of a.db.prepare('SELECT token_hash FROM participants').all())if(row.token_hash)a.db.prepare('INSERT OR REPLACE INTO visit_progress VALUES (?,?,?,?)').run('vehicle-'+row.token_hash,0,1000,'gyeongju');
-  d.reset(member);const palette=a.sessionPalette(phone);assert.equal(palette.tickets,0);assert.equal(palette.colors.length,12);assert.ok(palette.colors.some(c=>c.id==='personal-123456'));assert.deepEqual(a.sessionPalette(other),foreign);assert.equal(a.db.prepare('SELECT revision FROM artworks WHERE owner_hash=?').get(key).revision,7);assert.equal(a.db.prepare('SELECT count(*) n FROM visit_progress').get().n,2);
+  d.reset(member);const palette=a.sessionPalette(phone);assert.equal(palette.colors.length,12);assert.ok(palette.colors.some(c=>c.id==='personal-123456'));assert.deepEqual(a.sessionPalette(other),foreign);assert.equal(a.db.prepare('SELECT revision FROM artworks WHERE owner_hash=?').get(key).revision,7);assert.equal(a.db.prepare('SELECT count(*) n FROM visit_progress').get().n,2);
  }finally{a.close();}
 });
 test('HTTP developer actions require a demo participant and reject stale trip after same-family reset',async()=>{

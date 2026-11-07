@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { createPalette, unlockPersonalColor } from '../core/palette.mjs';
+import { createPalette } from '../core/palette.mjs';
 
 export function accountKey(token) {
   if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw new Error('UNAUTHORIZED');
@@ -53,21 +53,7 @@ export class AccountStore {
   getByKey(key) {
     const row = this.db.prepare('SELECT palette FROM accounts WHERE token_hash = ?').get(key);
     if (!row) throw new Error('UNAUTHORIZED');
-    return JSON.parse(row.palette);
-  }
-  unlock(token, hex, participant = false) {
-    this.db.exec('BEGIN IMMEDIATE');
-    try {
-      const key = participant ? this.participantOwner(token) : accountKey(token);
-      const updated = unlockPersonalColor(this.getByKey(key), hex);
-      this.db.prepare('UPDATE accounts SET palette = ? WHERE token_hash = ?')
-        .run(JSON.stringify(updated), key);
-      this.db.exec('COMMIT');
-      return updated;
-    } catch (error) {
-      this.db.exec('ROLLBACK');
-      throw error;
-    }
+    return { colors: JSON.parse(row.palette).colors };
   }
   createSession(token) {
     this.get(token);

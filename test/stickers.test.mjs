@@ -17,7 +17,7 @@ test('reusable sticker instances keep independent paint, geometry, restart and b
     let diaries=new DiaryStore(accounts),page=diaries.page(member,diaries.library(member).pages[0].id);
     const first=placement('first'),second={...placement('second'),x:300,strokes:[]};
     const saved=diaries.savePage(member,page.id,{...page,stickers:[first,second]});
-    assert.deepEqual(saved.stickers,[first,second]);assert.equal(accounts.get(owner).tickets,1);
+    assert.deepEqual(saved.stickers,[first,second]);
     const moved={...saved.stickers[0],x:50,width:230,height:60};
     const updated=diaries.savePage(member,page.id,{...saved,stickers:[moved,second]});
     assert.deepEqual(updated.stickers[0].strokes,first.strokes);
@@ -75,7 +75,6 @@ test('explicit development unlock permits regional save without fabricating visi
     page=diaries.savePage(member,page.id,{...page,stickers:[placement('tower','gyeongju-cheomseongdae'),placement('crown','gyeongju-silla-crown')]});
     assert.equal(page.stickers.length,2);
     assert.equal(accounts.db.prepare('SELECT count(*) AS n FROM sticker_ownership').get().n,0);
-    assert.equal(accounts.get(owner).tickets,1);
     accounts.developmentStickerAccess=false;
     assert.equal(ownedStickers(accounts,member).length,2);
     assert.throws(()=>diaries.savePage(member,page.id,page),/INVALID_STICKER_PLACEMENT/);

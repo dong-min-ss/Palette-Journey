@@ -10,7 +10,7 @@ class VisitRewardsDeviceTest {
  private fun get(path:String,t:String)=VehicleApi.request("/api/session/$path","GET",null,t)
  private fun route(t:String,start:Long){for(i in 0..8)VehicleApi.request("/api/session/visits/mock","POST",JSONObject().put("source","simulation").put("latitude",35.8347).put("longitude",129.219).put("timestamp",start+i*15000L),t)}
  private fun check(t:String){
-  val p=get("palette",t);assertEquals(14,p.getJSONArray("colors").length());assertEquals(1,p.getInt("tickets"))
+  val p=get("palette",t);assertEquals(14,p.getJSONArray("colors").length())
   assertEquals(1,get("visits",t).getJSONArray("rewards").length())
   val stickers=get("catalog",t).getJSONArray("stickers");var count=0
   for(i in 0 until stickers.length()){val s=stickers.getJSONObject(i);if(s.getString("kind")=="regional"){count++;assertTrue(s.getBoolean("unlocked"));assertFalse(s.getBoolean("developmentUnlocked"));assertEquals("simulation",s.getString("rewardSource"))}}

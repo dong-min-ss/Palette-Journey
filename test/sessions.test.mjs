@@ -8,7 +8,7 @@ import { AccountStore } from '../backend/store.mjs';
 import { createApp } from '../backend/server.mjs';
 const credential = () => randomBytes(32).toString('hex');
 
-test('invitation expiry, participant retry, session expiry and shared ticket', () => {
+test('invitation expiry, participant retry, session expiry', () => {
   let now = 1_000_000;
   const store = new AccountStore(':memory:', () => now);
   const owner = credential(), member = credential();
@@ -16,18 +16,14 @@ test('invitation expiry, participant retry, session expiry and shared ticket', (
     store.register(owner);
     const session = store.createSession(owner);
     assert.equal(store.joinSession(member, session.code).id, session.id);
-    store.unlock(member, '#123ABC', true);
-    assert.equal(store.get(owner).tickets, 0);
     now = session.joinExpiresAt;
     assert.throws(() => store.joinSession(credential(), session.code), /INVALID_SESSION/);
     assert.equal(store.joinSession(member, session.code).id, session.id);
-    assert.equal(store.sessionPalette(member).colors.length, 12);
+    assert.equal(store.sessionPalette(member).colors.length, 11);
     assert.throws(() => store.createSession(member), /UNAUTHORIZED/);
-    assert.throws(() => store.unlock(member, '#ABCDEF', true), /NO_TICKET/);
     now = session.expiresAt;
     assert.throws(() => store.sessionPalette(member), /UNAUTHORIZED/);
     assert.throws(() => store.joinSession(member, session.code), /INVALID_SESSION/);
-    assert.equal(store.register(owner).tickets, 0);
   } finally { store.close(); }
 });
 
@@ -45,8 +41,6 @@ test('only owner can revoke; replacement session invalidates old participants', 
     assert.throws(() => store.joinSession(member, b.code), /PARTICIPANT_IN_USE/);
     const fresh = credential(); store.joinSession(fresh, b.code);
     store.revokeSession(owner, b.id);
-    assert.throws(() => store.unlock(fresh, '#123ABC', true), /UNAUTHORIZED/);
-    assert.equal(store.get(owner).tickets, 1);
   } finally { store.close(); }
 });
 
@@ -60,7 +54,6 @@ test('reopened database retains participants, expiry and revocation without raw 
     const session = store.createSession(owner);
     store.joinSession(member, session.code);
     store.close(); store = new AccountStore(path, () => 2000);
-    assert.equal(store.sessionPalette(member).tickets, 1);
     store.revokeSession(owner, session.id);
     store.close(); store = new AccountStore(path, () => 3000);
     assert.throws(() => store.sessionPalette(member), /UNAUTHORIZED/);
@@ -88,9 +81,8 @@ test('HTTP participants see owner palette without account creation and lose acce
     assert.equal((await request('/api/sessions', member, 'POST')).status, 401);
     assert.equal((await request('/api/session/palette', credential())).status, 401);
     const palette = await (await request('/api/session/palette', member)).json();
-    assert.equal(palette.tickets, 1); assert.equal(palette.colors.length, 11);
-    assert.equal((await request('/api/session/palette/personal', member, 'POST', { hex: '#123ABC' })).status, 200);
-    assert.equal(store.get(owner).tickets, 0);
+     assert.equal(palette.colors.length, 11);
+    assert.equal((await request('/api/session/palette/personal', member, 'POST', { hex: '#123ABC' })).status, 404);
     assert.equal((await request(`/api/sessions/${session.id}`, owner, 'DELETE')).status, 200);
     assert.equal((await request('/api/session/palette', member)).status, 401);
   } finally { await new Promise(resolve => server.close(resolve)); store.close(); }

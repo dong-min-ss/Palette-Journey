@@ -20,7 +20,6 @@ test('catalog distinguishes basics and locked Gyeongju rewards by content id rat
   assert.equal(contentCatalog(palette).colors[1].unlocked,false);
   palette.colors.push({id:'region-gyeongju-gold',hex:catalog.colors[1].hex});
   assert.equal(contentCatalog(palette).colors[1].unlocked,true);
-  assert.equal(palette.tickets,1);
 });
 
 test('development access is usable but never counted as collected city content',()=>{

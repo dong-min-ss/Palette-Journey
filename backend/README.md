@@ -20,26 +20,23 @@ SQLite 데이터는 backend/data/에 저장되고 Git에서 제외된다.
 | 메서드 | 경로 | 동작 |
 |---|---|---|
 | GET | /health | 서버 상태, 인증 불필요 |
-| PUT | /api/account | 최초 등록 또는 기존 계정 복원. 11색·티켓1장 최초1회 |
+| PUT | /api/account | 최초 등록 또는 기존 계정 복원. 기본 11색 지급 |
 | GET | /api/palette | 자신의 저장된 팔레트 조회 |
-| POST | /api/palette/personal | JSON {"hex":"#123ABC"}, 티켓1장으로 색 해금 |
 | POST | /api/sessions | 계정 소유자만 연결 세션 생성 |
 | POST | /api/sessions/join | 참여자 토큰과 JSON {"code":"연결코드"}로 참여 |
 | GET | /api/session/palette | 참여자 토큰으로 세션 소유자 팔레트 조회 |
-| POST | /api/session/palette/personal | 참여자가 소유자 티켓으로 개인 색 해금 |
 | DELETE | /api/sessions/{id} | 소유자만 세션 종료 |
 | GET | /api/session/artwork | 참여자 권한으로 공유 계정의 저장 작품 조회 |
 | PUT | /api/session/artwork | strokes, legacyRegions, revision 형식으로 브러시 획 저장 |
 
-팔레트 정상 응답은 tickets와 colors를 포함한다. 중복 해금은 티켓을 추가 차감하지 않는다.
+팔레트 정상 응답은 colors를 포함한다.
 오류는 {"error":"코드"} 형식이다. 인증 실패401, 잘못된 입력400,
-티켓 부족409, 큰 요청413, 없는 경로404를 반환한다.
+큰 요청413, 없는 경로404를 반환한다.
 지역 수집 API는 클라이언트가 임의 지급하지 못하도록 아직 노출하지 않는다.
 
 ## 검증
 
 `npm.cmd run check`: 파일 DB 재개방 후 보상/색 복원, 등록 재시도,
-다중 DB 연결에서 티켓 중복 차감 방지, 실제 HTTP 병렬 해금, 인증·입력 검증·계정 분리를 확인한다.
 Windows Codex 샌드박스에서 localhost 연결이 EACCES로 막히면 네트워크 실행 권한이 필요하다.
 
 ## 차량·모바일 연결 세션
@@ -52,7 +49,7 @@ Windows Codex 샌드박스에서 localhost 연결이 EACCES로 막히면 네트�
 Authorization 헤더에 사용하여 join API로 코드를 보낸다. 참여 계정을 새로 만들 필요가 없고 보상도 지급하지 않는다.
 성공한 참여자는 같은 코드·토큰으로 재시도할 수 있다. 신규 참여 코드가 만료돼도 기존 참여자의 세션은 전체 만료까지 유지된다.
 다른 세션에 참여할 때는 새 참여자 토큰을 만든다. 참여자 권한은 공유 팔레트 조회·개인 색 해금·작품 조회/저장이며,
-세션 발급·종료 권한은 없다. 해금은 공유 계정 티켓을 차감한다.
+세션 발급·종료 권한은 없다.
 
 코드와 참여자 토큰 원문은 서버에 저장하지 않고 해시만 저장한다.
 다른 계정은 세션 종료를 요청할 수 없다. 종료/전체 만료 시 참여자의 조회·차감을 모두 차단한다.

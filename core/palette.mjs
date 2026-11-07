@@ -7,16 +7,7 @@ export const BASE_COLORS = Object.freeze([
 
 // Account creation only: reconnecting a session must load the existing state.
 export function createPalette() {
-  return { tickets: 1, colors: BASE_COLORS.map(color => ({ ...color })) };
-}
-
-export function unlockPersonalColor(state, hex) {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error('INVALID_COLOR');
-  hex = hex.toUpperCase();
-  if (state.colors.some(color => color.hex === hex)) return state;
-  if (state.tickets < 1) throw new Error('NO_TICKET');
-  return { tickets: state.tickets - 1, colors: [...state.colors,
-    { id: `personal-${hex.slice(1)}`, hex, source: 'personal' }] };
+  return { colors: BASE_COLORS.map(color => ({ ...color })) };
 }
 
 export function collectRegionColor(state, { id, hex, name }, acquiredAt) {
