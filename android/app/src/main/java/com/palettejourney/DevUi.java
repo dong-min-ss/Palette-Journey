@@ -56,7 +56,7 @@ final class DevUi {
         b.setMinHeight(dp(b.getContext(),60));b.setPadding(dp(b.getContext(),20),dp(b.getContext(),14),dp(b.getContext(),20),dp(b.getContext(),14));
         if("destination-action".equals(b.getTag()))b.setMinHeight(dp(b.getContext(),94));
     }
-    static void home(LinearLayout root,Button book,Button collection,Button family,Button recordings,Button developer){
+    static void home(LinearLayout root,Button book,Button collection,Button family,Button recordings,Button developer,Button missions){
         java.util.List<View> rest=new java.util.ArrayList<>();
         for(int i=2;i<root.getChildCount();i++){View v=root.getChildAt(i);if(v!=book&&v!=collection&&v!=family&&v!=recordings&&v!=developer)rest.add(v);}
         root.removeAllViews();int pad=dp(root.getContext(),24);root.setPadding(pad,pad,pad,pad);
@@ -90,7 +90,11 @@ final class DevUi {
             }
         }
         LinearLayout conversation=section(root,"목소리로 이야기 남기기");for(View v:rest)conversation.addView(v);
-        if(developer!=null){LinearLayout tools=fold(root,"개발 도구");tools.addView(developer);tools.addView(text(root.getContext(),"모의 주행 · 지역 해금 시연",18));}
+        if (developer != null) {
+            LinearLayout tools = fold(root, "개발 도구");
+            tools.addView(developer);
+            tools.addView(missions);
+        }
     }
     static void styleTree(View v){
         if("palette-swatch".equals(v.getTag()))return;

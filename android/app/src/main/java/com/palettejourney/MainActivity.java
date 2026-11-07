@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private TextView currentQuestion, conversationHistory, conversationState;
     private Button skipConversation, endConversation;
     private final List<VoiceArchive.Entry> recordedEntries=new ArrayList<>();
-    private Button saveRecording,openRecordings,webConnection,journeyBook,collectionButton,devDrive;
+    private Button saveRecording,openRecordings,webConnection,journeyBook,collectionButton,devDrive,missions;
     private boolean recordingSaved,foreground,pendingRecordStart;
     private void clearRecordedDrafts() {
         for(VoiceArchive.Entry entry:recordedEntries)if(entry.audio!=null)entry.audio.delete();
@@ -109,6 +109,7 @@ public class MainActivity extends Activity {
         if(collectionButton!=null)collectionButton.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(journeyBook!=null)journeyBook.setEnabled(!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
         if(devDrive!=null)devDrive.setEnabled(emulatorTestAllowed()&&!answer.busy()&&!speechBusy&&!conversation.active()&&(recordingSaved||recordedEntries.isEmpty()));
+        if (missions != null) missions.setEnabled(devDrive.isEnabled());
     }
     private void playSpeechQuestion() {
         if (!speechReady || speechBusy || speech == null || !emulatorTestAllowed()) {
@@ -245,7 +246,13 @@ public class MainActivity extends Activity {
         });
         DevUi.moveTo(root,(android.view.View)recordingNotice.getParent());
         DevUi.moveTo(root,(android.view.View)speechDetails.getParent());
-        DevUi.home(root,journeyBook,collectionButton,webConnection,openRecordings,devDrive);
+        if (devDrive != null) {
+            missions = new Button(this);
+            missions.setText("지역 미션 생성");
+            missions.setEnabled(emulatorTestAllowed());
+            missions.setOnClickListener(v -> startActivity(new Intent(this, RegionMissionActivity.class)));
+        }
+        DevUi.home(root,journeyBook,collectionButton,webConnection,openRecordings,devDrive,missions);
         Button ambient=new Button(this);ambient.setText("색 조명 연동 · 정차 중 시연");ambient.setOnClickListener(v->startActivity(new Intent(this,AmbientActivity.class)));root.addView(ambient,Math.min(getResources().getConfiguration().screenWidthDp>=650?3:5,root.getChildCount()),new LinearLayout.LayoutParams(-1,-2));
         beginAnswer.setTag("primary-action");
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
