@@ -97,7 +97,7 @@ public class AmbientActivity extends VehicleActivity {
     }
     private final Runnable tick=new Runnable(){public void run(){if(!active)return;if(!busy){busy=true;int epoch=generation;io.execute(()->{try{process(epoch);}catch(Exception error){show("서버·가족 연결을 확인해주세요. 조명 적용을 멈췄어요.");}finally{main.post(()->busy=false);}});}main.postDelayed(this,1000);}};
     @Override protected void onStart(){super.onStart();
-        if(!BuildConfig.DEBUG||!("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE))){status.setText("실차 조명 제어는 잠겨 있어요. 에뮬레이터 전용 시연입니다.");return;}
+        if(!BuildConfig.EMULATOR_DEMO||!("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE))){status.setText("실차 조명 제어는 잠겨 있어요. 에뮬레이터 전용 시연입니다.");return;}
         active=true;generation++;
         if(checkSelfPermission("android.car.permission.CAR_SPEED")!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{"android.car.permission.CAR_SPEED"},915);
         try{vehicle=new Vehicle(this);vehicle.initialize();car=Car.createCar(this);properties=(CarPropertyManager)car.getCarManager(Car.PROPERTY_SERVICE);main.postDelayed(tick,1500);}catch(Exception error){show("조명 SDK에 연결하지 못했어요.");}

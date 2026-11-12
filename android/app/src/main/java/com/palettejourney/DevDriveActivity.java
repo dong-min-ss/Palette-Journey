@@ -21,7 +21,7 @@ public class DevDriveActivity extends VehicleActivity {
     private Button pause,reset,newFamily,connect;private GridLayout destinations;private final List<Button> cities=new ArrayList<>();
     private String participant,tripId,selected,highlighted,previewRegion,signature;private JSONObject latestCatalog;private boolean busy,commandBusy,loaded,running;private int routeMeters=300,parkMillis=5000;
     interface Work{JSONObject run()throws Exception;}
-    private boolean allowed(){return BuildConfig.DEBUG&&("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE));}
+    private boolean allowed(){return BuildConfig.EMULATOR_DEMO&&("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE));}
     private Button button(LinearLayout parent,String name,Runnable action){Button b=new Button(this);b.setText(name);DevUi.button(b);parent.addView(b,new LinearLayout.LayoutParams(-1,-2));b.setOnClickListener(v->action.run());return b;}
     @Override public void onCreate(Bundle state){super.onCreate(state);
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(DevUi.dp(this,20),DevUi.dp(this,12),DevUi.dp(this,20),DevUi.dp(this,12));root.setBackgroundColor(DevUi.BG);

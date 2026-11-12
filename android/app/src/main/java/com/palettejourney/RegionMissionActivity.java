@@ -20,7 +20,7 @@ public class RegionMissionActivity extends VehicleActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        if (!BuildConfig.DEBUG || !("ranchu".equals(Build.HARDWARE) || "goldfish".equals(Build.HARDWARE))) {
+        if (!BuildConfig.EMULATOR_DEMO || !("ranchu".equals(Build.HARDWARE) || "goldfish".equals(Build.HARDWARE))) {
             finish();
             return;
         }

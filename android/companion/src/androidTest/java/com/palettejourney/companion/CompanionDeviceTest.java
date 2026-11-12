@@ -23,8 +23,16 @@ public class CompanionDeviceTest {
         return new org.json.JSONTokener(result[0]).nextValue();
     }
     private void waitJs(String label,String expression) throws Exception {
-        for(int i=0;i<150;i++){if(Boolean.TRUE.equals(js(expression)))return;Thread.sleep(100);}
-        fail(label+": "+js("document.getElementById('voice-status')?.textContent+' / '+document.getElementById('status')?.textContent+' / '+window.__micError"));
+        long deadline=SystemClock.uptimeMillis()+45000;
+        while(SystemClock.uptimeMillis()<deadline){
+            try { if(Boolean.TRUE.equals(js(expression)))return; }
+            catch(AssertionError error){
+                // A reload can discard an evaluation callback from the previous document.
+                if(!"JavaScript response".equals(error.getMessage()))throw error;
+            }
+            Thread.sleep(100);
+        }
+        fail(label);
     }
     private void tap(String id) throws Exception {
         js("document.getElementById("+JSONObject.quote(id)+").scrollIntoView({block:'center'});true");Thread.sleep(250);
@@ -49,7 +57,7 @@ public class CompanionDeviceTest {
         String code=InstrumentationRegistry.getArguments().getString("code");
         assertNotNull("Use the isolated phone-test-server and pass -e code",code);
         var instrument=InstrumentationRegistry.getInstrumentation();
-        instrument.getUiAutomation().grantRuntimePermission("com.palettejourney.companion","android.permission.RECORD_AUDIO");
+        instrument.getUiAutomation().grantRuntimePermission(instrument.getTargetContext().getPackageName(),"android.permission.RECORD_AUDIO");
         screen=(CompanionActivity)instrument.startActivitySync(new Intent(instrument.getTargetContext(),CompanionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK));
         try {
             waitJs("Web app loaded","!!document.getElementById('join-form')?.onsubmit");
@@ -59,11 +67,14 @@ public class CompanionDeviceTest {
             waitJs("Family joined","document.getElementById('studio')?.hidden===false && !document.getElementById('voice-start').disabled");
             assertEquals(Boolean.TRUE,js("isSecureContext && !!navigator.mediaDevices?.getUserMedia"));
             js("const gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=(o)=>gum(o).catch(e=>{window.__micError=e.name+': '+e.message;throw e;});true");
-            js("document.getElementById('drawing').scrollIntoView({block:'center'});true");Thread.sleep(400);
+            instrument.runOnMainSync(()->((android.view.inputmethod.InputMethodManager)screen.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(screen.web.getWindowToken(),0));
+            js("document.activeElement?.blur();document.getElementById('drawing').scrollIntoView({block:'center'});true");Thread.sleep(400);
             JSONObject box=(JSONObject)js("(()=>{const r=document.getElementById('drawing').getBoundingClientRect();return {x:r.x+r.width*.3,y:r.y+r.height*.5,w:innerWidth}})()");
             int[] position=new int[2];int[] width=new int[1];
             instrument.runOnMainSync(()->{screen.web.getLocationOnScreen(position);width[0]=screen.web.getWidth();});
             float scale=width[0]/(float)box.getDouble("w"),x=position[0]+(float)box.getDouble("x")*scale,y=position[1]+(float)box.getDouble("y")*scale;
+            screenshot("phone-before-drawing.png");
+            android.util.Log.i("PalettePhoneTest","drawing x="+x+" y="+y+" scale="+scale+" bounds="+box);
             long start=SystemClock.uptimeMillis();
             for(int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_MOVE,MotionEvent.ACTION_UP}){
                 MotionEvent event=MotionEvent.obtain(start,SystemClock.uptimeMillis(),action,x+(action==MotionEvent.ACTION_DOWN?0:80),y,0);
@@ -94,7 +105,8 @@ public class CompanionDeviceTest {
             android.media.MediaPlayer nativePlayer=new android.media.MediaPlayer();
             try {
                 nativePlayer.setDataSource(screen,Uri.parse(CompanionActivity.ORIGIN+"/api/session/pages/"+pageId+"/voice/audio"),java.util.Map.of("Authorization","Bearer "+credential));
-                nativePlayer.prepare();nativePlayer.start();Thread.sleep(400);
+                nativePlayer.prepare();nativePlayer.start();
+                for(int i=0;i<50 && nativePlayer.getCurrentPosition()==0;i++)Thread.sleep(100);
                 assertTrue("Vehicle-style native MediaPlayer decoding",nativePlayer.getCurrentPosition()>0);
             } finally { nativePlayer.release(); }
             js("document.querySelector('[data-panel=book]').click();true");

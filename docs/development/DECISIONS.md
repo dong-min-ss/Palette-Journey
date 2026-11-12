@@ -251,3 +251,11 @@ MediaRecorder가 만든 WebM은 네이티브 MediaPlayer에서 재생되더라�
 - 녹음 전에는 동의와 시작 방법을 보여주고, 현재 질문은 대화가 진행 중일 때 표시한다. 녹음·보관 안내와 음성 설정은 접어서 아래에 배치한다.
 - 차량 홈과 하위 화면은 웹 스케치북의 아이보리 배경과 종이색 카드를 사용한다. 모래색 제목 영역과 갈색 강조색을 적용하고, 활성·포커스·비활성 상태는 밝은 배경에서 구분한다. 차량 사전 WebView에도 같은 색을 사용한다.
 - 가족 연결의 자동 조회는 버튼을 잠그지 않는다. 명시적 QR 발급·가족 변경만 중복 클릭을 잠그며, 이전 자동 조회 응답은 명시적 작업 이후 화면에 적용하지 않는다.
+
+## 2026-11-13 — 공모전 제출용 release
+
+- `paletteSubmissionDemo=true`를 명시한 release만 `EMULATOR_DEMO=true`로 빌드한다. 기존 debug 시연은 유지하며 일반 release의 실차 조작 잠금과 HTTP 차단은 유지한다. 시연 권한은 release/debug 여부와 분리하되 모든 차량 시연 화면은 기존 ranchu/goldfish 하드웨어 확인을 함께 요구한다.
+- 제출 release는 `debuggable=false`이고 별도 로컬 RSA 키로 서명한다. 키와 비밀번호는 `android/.signing/`에 보관하고 Git에서 제외한다. 차량·폰에 `.submission` 패키지 접미사를 사용해 기존 앱의 가족·그림·음성과 서명 충돌을 피한다. 기존 기록을 자동 이관하지 않는다.
+- 제출 차량만 `10.0.2.2` HTTP를 허용한다. 다른 HTTP 호스트는 차단한다. 모의 주행 화면만 submission Manifest에서 distractionOptimized로 설정해 콘솔 D 상태에서도 모의 거리 갱신을 계속한다. 이 화면은 에뮬레이터 밖에서 잠긴다.
+- 제출 차량 release에서는 부분 R8 최적화를 끈다. 초기 빌드에서 Kotlin/AndroidX 초기화 IllegalAccessError와 release 테스트의 tracing 클래스 누락이 재현됐다. 디버깅 허용과 최적화 여부는 별개이며 서명된 비디버그 release 특성은 유지한다.
+- APK 파일명에 사용자 확인한 개인 참가자명 박동민을 반영한다. README에 AVD 설정과 실제 조회한 화면 규격, 서버·ADB·권한 설정을 명시한다.

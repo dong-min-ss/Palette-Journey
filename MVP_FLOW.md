@@ -18,13 +18,24 @@ npm.cmd start
 
 ```text
 adb devices -l
-adb -s <차량 serial> install -r apk/palette-vehicle-mvp.apk
-adb -s <폰 serial> install -r apk/palette-companion-mvp.apk
+adb -s <차량 serial> install -r "apk/박동민_PaletteJourney_release.apk"
+adb -s <폰 serial> install -r "apk/박동민_PaletteJourneyCompanion_release.apk"
 adb -s <폰 serial> reverse tcp:3000 tcp:3000
 adb -s <차량 serial> forward tcp:8088 tcp:8088
 ```
 
 차량과 폰에서 앱을 열고 PC 브라우저에서 [Virtual Console](http://127.0.0.1:8088/)을 엽니다. 주행과 조명 시연 동안 콘솔을 열어둡니다.
+
+제출 APK는 디버깅을 끈 서명된 release이며 에뮬레이터 시연 전용입니다. 기존 debug 앱과 다른 패키지로 설치됩니다. 앱이 여러 개 있다면 아래 명령으로 제출용 앱을 엽니다.
+
+```text
+adb -s <차량 serial> shell am start -n com.palettejourney.submission/com.palettejourney.MainActivity
+adb -s <폰 serial> shell am start -n com.palettejourney.companion.submission/com.palettejourney.companion.CompanionActivity
+```
+
+기존 debug 앱과 가족 연결이 분리되어 있으므로 다음 단계에서 새로 연결해주세요. 에뮬레이터에는 PC의 소리가 출력될 수 있습니다.
+
+차량 앱이 위치·차량 속도 접근 권한을 요청하면 시연에 필요한 권한을 허용합니다. 권한을 거부하거나 차량 상태를 읽지 못하면 주행·조명 시연이 진행되지 않습니다.
 
 ## 2. 같은 가족으로 연결하고 경주 색 모으기
 

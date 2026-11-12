@@ -23,7 +23,7 @@ public class JourneyBookActivity extends VehicleActivity {
     private Spinner picker;private TextView heading,caption,status,clock;private Button play,previous,next,refresh;private WebView drawing;private SeekBar seek;
     private String token,pageId;private int index=-1,generation=0,voiceRevision;private JSONObject recording;
     private boolean active,loading,preparing,binding,completed,scrubbing;private MediaPlayer player;private File audioFile;
-    private boolean allowed(){return BuildConfig.DEBUG&&("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE));}
+    private boolean allowed(){return BuildConfig.EMULATOR_DEMO&&("ranchu".equals(android.os.Build.HARDWARE)||"goldfish".equals(android.os.Build.HARDWARE));}
     @Override public void onCreate(Bundle state){super.onCreate(state);
         File[] stale=getCacheDir().listFiles((dir,name)->name.startsWith("book-audio-")&&name.endsWith(".media"));if(stale!=null)for(File file:stale)file.delete();
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(DevUi.dp(this,24),DevUi.dp(this,12),DevUi.dp(this,24),DevUi.dp(this,12));root.setBackgroundColor(DevUi.BG);

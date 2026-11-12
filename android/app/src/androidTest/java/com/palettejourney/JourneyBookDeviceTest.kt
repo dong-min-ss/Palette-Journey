@@ -28,7 +28,7 @@ class JourneyBookDeviceTest {
   val session=VehicleApi.request("/api/sessions","POST",JSONObject(),owner);val member=VehicleApi.randomToken()
   VehicleApi.request("/api/sessions/join","POST",JSONObject().put("code",session.getString("code")),member)
   var activity:android.app.Activity?=null
-  fun button(v:View,label:String):Button?{if(v is Button&&v.text.toString()==label)return v;if(v is ViewGroup)for(i in 0 until v.childCount){val b=button(v.getChildAt(i),label);if(b!=null)return b};return null}
+  fun button(v:View,label:String):Button?{if(v is Button&&(v.text.toString()==label||v.text.toString().startsWith(label+"\n")))return v;if(v is ViewGroup)for(i in 0 until v.childCount){val b=button(v.getChildAt(i),label);if(b!=null)return b};return null}
   try{
    val start=System.currentTimeMillis();for(i in 0..8)VehicleApi.request("/api/session/visits/mock","POST",JSONObject().put("source","simulation").put("latitude",35.8347).put("longitude",129.219).put("timestamp",start+i*15000),member)
    val library=VehicleApi.request("/api/session/library","GET",null,member);val pageId=library.getJSONArray("pages").getJSONObject(0).getString("id");val path="/api/session/pages/"+pageId
@@ -66,7 +66,12 @@ class JourneyBookDeviceTest {
    assertTrue(context.cacheDir.listFiles()!!.none{it.name.startsWith("book-audio-")})
    instrument.runOnMainSync{(tagged("book-picker") as Spinner).setSelection(0)};waitFor("first page reload"){status()=="질문 재합성 · 답변 원음"}
    instrument.runOnMainSync{(tagged("book-play") as Button).performClick()};waitFor("conversation completes"){status()=="재생 완료"}
-   assertEquals(saved.toString(),VehicleApi.request(path,"GET",null,member).toString())
+   fun contents(value:Any?):Any?=when(value){
+    is JSONObject->value.keys().asSequence().associateWith{contents(value.get(it))}
+    is JSONArray->(0 until value.length()).map{contents(value.get(it))}
+    else->value
+   }
+   assertEquals(contents(saved),contents(VehicleApi.request(path,"GET",null,member)))
    assertTrue(VehicleApi.request("/api/session/connection","GET",null,member).isNull("page"))
    VehicleApi.request("/api/sessions/"+session.getString("id"),"DELETE",null,owner)
    instrument.runOnMainSync{button(viewer.window.decorView,"새로고침")!!.performClick()};waitFor("expired family clears viewer"){status().startsWith("가족 연결 만료")}

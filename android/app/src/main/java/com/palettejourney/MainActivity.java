@@ -223,7 +223,7 @@ public class MainActivity extends Activity {
         root.removeView(webConnection);root.addView(webConnection,2,new LinearLayout.LayoutParams(-1,-2));
         journeyBook=new Button(this);journeyBook.setText("여행책 감상");root.addView(journeyBook,2,new LinearLayout.LayoutParams(-1,-2));journeyBook.setOnClickListener(v->startActivity(new Intent(this,JourneyBookActivity.class)));
         collectionButton=new Button(this);collectionButton.setText("색·스티커 사전");root.addView(collectionButton,3,new LinearLayout.LayoutParams(-1,-2));collectionButton.setOnClickListener(v->startActivity(new Intent(this,CollectionActivity.class)));
-        if(BuildConfig.DEBUG){devDrive=new Button(this);devDrive.setText("개발자 주행 시연");root.addView(devDrive,4,new LinearLayout.LayoutParams(-1,-2));devDrive.setOnClickListener(v->startActivity(new Intent(this,DevDriveActivity.class)));}
+        if(BuildConfig.EMULATOR_DEMO){devDrive=new Button(this);devDrive.setText("개발자 주행 시연");root.addView(devDrive,4,new LinearLayout.LayoutParams(-1,-2));devDrive.setOnClickListener(v->startActivity(new Intent(this,DevDriveActivity.class)));}
         renderConversation();
         answerStatus.setText(emulatorTestAllowed()?"동의한 뒤 이야기 녹음을 시작할 수 있어요.":"녹음은 Pleos 에뮬레이터 시연에서 사용할 수 있어요.");
         answerText.setText("");
@@ -259,9 +259,9 @@ public class MainActivity extends Activity {
         updateSpeech("음성 서비스 연결 전");
     }
 
-    // Until real parking state is wired, this diagnostic is locked on real vehicles/release builds.
+    // Demo access is explicit and remains locked on real vehicles, including submission builds.
     private boolean emulatorTestAllowed() {
-        return BuildConfig.DEBUG && ("ranchu".equals(Build.HARDWARE) || "goldfish".equals(Build.HARDWARE));
+        return BuildConfig.EMULATOR_DEMO && ("ranchu".equals(Build.HARDWARE) || "goldfish".equals(Build.HARDWARE));
     }
     private void updateSpeech(String message) {
         Log.i(TAG, message);
@@ -281,7 +281,7 @@ public class MainActivity extends Activity {
     }
     private void initializeSpeech() {
         releaseSpeech();
-        if (!emulatorTestAllowed()) { updateSpeech("실차/배포 빌드 음성 시험 잠김 · 정차 상태 연동 필요"); return; }
+        if (!emulatorTestAllowed()) { updateSpeech("실차/일반 배포 빌드 음성 시험 잠김 · 정차 상태 연동 필요"); return; }
         final int epoch = speechEpoch;
         updateSpeech("Pleos TTS 3.3.1 연결 중 · ON_DEVICE");
         speechTimeoutAfter(epoch, "음성 연결 응답 지연 · 연결을 다시 확인해주세요");

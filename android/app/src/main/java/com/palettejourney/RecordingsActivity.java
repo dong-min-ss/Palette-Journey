@@ -31,7 +31,7 @@ public class RecordingsActivity extends VehicleActivity {
     private int epoch,index;
     private VoiceArchive.Saved current;
     private Runnable timeout;
-    private boolean allowed(){return BuildConfig.DEBUG&&("ranchu".equals(Build.HARDWARE)||"goldfish".equals(Build.HARDWARE));}
+    private boolean allowed(){return BuildConfig.EMULATOR_DEMO&&("ranchu".equals(Build.HARDWARE)||"goldfish".equals(Build.HARDWARE));}
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(40,32,40,32);

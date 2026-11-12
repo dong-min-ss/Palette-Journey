@@ -492,3 +492,13 @@
 - 휴대폰의 모의 경로에서 경주 색 3개와 스티커 2개 지급을 확인했다. 경주 사전과 녹음 진입 화면을 에뮬레이터에서 다시 캡처했다.
 - 차량 콘솔 주행 중 거리 갱신이 없었고, 편집 중 휴대폰 디버그 연결이 끊겼다. 여행책 재생, 그림 편집, 조명 화면은 기존 시연 캡처를 선별했다. 차량 STT 인식 결과는 이번에 캡처하지 못했다.
 - README에 화면 5컷을 배치하고 새 캡처와 기존 캡처를 구분했다. 로컬 이미지 참조와 `git diff --check`를 확인했다.
+
+## 2026-11-13 — 제출용 release APK와 실행 문서
+
+- 개인 참가자명 박동민의 차량·폰 APK를 별도 키로 서명한 비디버그 release로 교체했다. 빌드 스크립트 `scripts/Build-Submission.ps1`, `.submission` 패키지, 명시적 에뮬레이터 시연 옵션, 제출 전용 HTTP/모의 주행 Manifest를 추가했다. 키·비밀번호는 `.signing/` 전체를 Git에서 제외했다.
+- README에 Pleos Connect v2.1.0/API34, 2560×1440px/160dpi, Pixel 10a API37, 1080×2424px/420dpi와 Node24.21.0·SDK·서버·ADB·마이크 설정을 명시했다. 설치 가이드와 APK 링크·체크섬을 새 release로 맞추고 조명/주행/Android 개발 안내의 debug 전용 표현을 갱신했다.
+- `npm.cmd run check`: 67/67 통과. `:app:testReleaseUnitTest -PpaletteSubmissionDemo=true`: 18/18 통과. `:app:assembleRelease :companion:assembleRelease`와 release lint 통과. apksigner로 두 APK 서명 확인, aapt와 실제 기기 검사로 debuggable 비활성 확인.
+- Pleos release 기기 검사 5개 통과: 제출 설정·HTTP 호스트 제한, 가족 연결/페이지 공유, 그림·스티커·음성 재생과 일시정지/다시듣기·가족 만료, 개발자 주행 진입, 조명 파랑/보라/빨강/흰색 원본HEX 재조회 및 D 차단/P 복구.
+- 폰 release CompanionDeviceTest 1개 통과: 실제 터치 획, 보호자 동의 후 MediaRecorder 녹음/일시정지/재개·저장, 새로고침 복원, 웹과 네이티브 MediaPlayer 재생, 여행책 버튼 간격. 호스트 마이크는 꺼두었으므로 사람 음성 음질 검증을 뜻하지 않는다.
+- 검증은 읽기 전용 AVD와 인메모리 합성 가족 서버만 사용했다. 초기 실패는 부분 R8 최적화로 인한 Kotlin/AndroidX 초기화 충돌, JSON 키 순서 비교와 홈 라벨 변경, API37 테스트 호환 및 시작 시간 조건, 에뮬레이터 시스템 응답 없음이었다. 재현 원인을 수정/분리하고 위 검사들이 통과한 것을 확인했다.
+- 추가 연속 주행 검증에서는 release의 부산·제주 각 300m 도착과 첫 도시 정차 보상까지 진행했으나, 에뮬레이터 연결 단절/시스템 종료로 전체 보상·초기화 최종 통과를 확인하지 못했다. 단독 재실행에서도 QEMU 프로세스 자체가 사라졌고 종료 로그에는 앱 예외가 남지 않았다. 호스트 서버 /health는 HTTP200을 유지했다. 위 핵심 5개와 폰 1개의 성공을 연속 주행 전체 성공으로 확대하지 않는다.

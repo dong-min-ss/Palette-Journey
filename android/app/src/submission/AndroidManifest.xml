@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Only the simulated drive screen stays visible in D. Its emulator
+             hardware gate is required even in this signed release build. -->
+        <activity android:name=".DevDriveActivity">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+    </application>
+</manifest>

@@ -19,10 +19,28 @@
 
 | 파일 | 설치 대상 | 하는 일 |
 | --- | --- | --- |
-| [차량 앱 APK](apk/palette-vehicle-mvp.apk) | Pleos Connect 에뮬레이터 | 가족 연결, 지역 콘텐츠 수집, 조명 연동, 여행책 감상 |
-| [폰 보조 앱 APK](apk/palette-companion-mvp.apk) | Android 폰 에뮬레이터 | 그림·스티커·녹음 작성 및 저장 |
+| [차량 앱 release APK](apk/박동민_PaletteJourney_release.apk) | Pleos Connect 에뮬레이터 | 가족 연결, 지역 콘텐츠 수집, 조명 연동, 여행책 감상 |
+| [폰 보조 앱 release APK](apk/박동민_PaletteJourneyCompanion_release.apk) | Android 폰 에뮬레이터 | 그림·스티커·녹음 작성 및 저장 |
 
 두 앱은 같은 PC의 서버를 사용합니다. [처음부터 따라 하는 시연 가이드](MVP_FLOW.md)에 서버 시작, APK 설치, 가족 연결부터 여행책 감상까지 화면 순서대로 정리했습니다. [APK 체크섬과 빌드 방법](apk/README.md)도 확인할 수 있습니다.
+
+## 테스트 환경과 필요한 설정
+
+| 항목 | 시연 환경 |
+| --- | --- |
+| PC 및 서버 | Windows, Node.js 24 이상 (검증 버전 24.21.0), SQLite 내장 모듈 사용, 별도 npm 패키지 설치 불필요 |
+| 차량 | Pleos Connect Emulator v2.1.0, Android 14 / API 34, x86_64 |
+| 차량 화면 | 가로 2560 × 세로 1440px, 160dpi, 가로 방향 |
+| 폰 | Pixel 10a Android 에뮬레이터, API 37 Google Play x86_64 |
+| 폰 화면 | 가로 1080 × 세로 2424px, 420dpi, 세로 방향 (앱 최소 지원 API 34) |
+| 제출 빌드 | 별도 키로 서명한 release APK, `debuggable=false`, 에뮬레이터 시연 기능 명시 활성화 |
+| 차량 SDK | Vehicle 2.3.2, FusedLocation 1.1.3, TTS / STT 3.3.1 |
+
+차량은 `http://10.0.2.2:3000`으로 PC 서버에 연결합니다. 폰은 `adb reverse tcp:3000 tcp:3000` 설정 후 `http://localhost:3000`을 사용합니다. PC 서버를 켜두어야 연결·저장·동기화가 가능합니다. 모의 방문은 서버의 `PALETTE_MOCK_LOCATION=1`, 잠금 상태 시연은 `PALETTE_DEV_UNLOCK_STICKERS=0`으로 실행합니다. 필요한 명령은 [시연 가이드 1절](MVP_FLOW.md#1-서버와-두-앱-준비)에 있습니다.
+
+주행·조명 시연에는 차량 Virtual Console과 ADB 8088 포트 전달이 필요합니다. 음성 기록은 폰 앱 마이크 권한과 에뮬레이터의 호스트 마이크 입력을 켭니다. 모의 주행과 조명 API 재조회는 에뮬레이터 검증이며 실차 방문·LED 발광 검증을 의미하지 않습니다. 제출용 차량 앱은 실제 차량에서 시연 조작을 허용하지 않습니다.
+
+제출용 앱의 패키지는 차량 `com.palettejourney.submission`, 폰 `com.palettejourney.companion.submission`입니다. 기존 debug 앱과 나란히 설치되며 가족 연결은 새로 해야 합니다. 기존 앱의 그림·녹음을 지우거나 자동으로 옮기지 않습니다.
 
 ## MVP 시연 화면
 

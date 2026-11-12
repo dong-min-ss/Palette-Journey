@@ -28,7 +28,7 @@ public class UploadStoryActivity extends VehicleActivity {
         upload=new Button(this);upload.setText("이 페이지에 녹음 올리기");upload.setEnabled(false);root.addView(upload);
         getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,()->{if(!uploading)finish();else status.setText("전송 결과를 확인 중이에요. 잠시 기다려주세요.");});
         ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);root.setBackgroundColor(DevUi.BG);DevUi.styleTree(root);
-        if(!BuildConfig.DEBUG||!("ranchu".equals(Build.HARDWARE)||"goldfish".equals(Build.HARDWARE))){status.setText("차량 상태 미확인: 업로드 조작은 잠겨 있어요.");return;}
+        if(!BuildConfig.EMULATOR_DEMO||!("ranchu".equals(Build.HARDWARE)||"goldfish".equals(Build.HARDWARE))){status.setText("차량 상태 미확인: 업로드 조작은 잠겨 있어요.");return;}
         archiveId=getIntent().getStringExtra("archiveId");status.setText("연결된 가족과 페이지를 확인하고 있어요.");
         executor.execute(()->{try{prepare();}catch(Exception error){show("준비하지 못했어요. 차량의 웹 연결 화면에서 가족과 함께 볼 페이지를 선택한 뒤 다시 열어주세요.");}});
         upload.setOnClickListener(v->{if(!ready||uploading)return;new AlertDialog.Builder(this).setTitle("확인한 페이지에 올릴까요?").setMessage(target.getText()+"\n\n답변 목소리와 질문·답변 문장을 가족 서버로 전송합니다. 다른 기기가 공유 페이지를 바꾸어도 지금 확인한 페이지에 저장합니다.").setNegativeButton("취소",null).setPositiveButton("이 페이지에 올리기",(dialog,which)->send()).show();});
