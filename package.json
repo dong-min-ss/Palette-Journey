@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.mjs",
     "test": "node --test",
-    "check": "node --check core/palette.mjs && node --check backend/server.mjs && node --check web/app.mjs && node --check web/stickers.mjs && node --check web/assets/catalog-view.mjs && node --test"
+    "verify:drive": "node scripts/Verify-DriveDemo.mjs",
+    "check": "node --check core/palette.mjs && node --check backend/server.mjs && node --check web/app.mjs && node --check web/stickers.mjs && node --check web/assets/catalog-view.mjs && node --check scripts/Verify-DriveDemo.mjs && node --test"
   },
   "engines": {
     "node": ">=24"
